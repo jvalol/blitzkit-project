@@ -1,7 +1,16 @@
 # The games depend on the published blitzkit, so each one clones and runs on its
 # own. Inside this folder they build against the engine checkout instead, which
 # is what keeps a breaking engine change visible before it ships.
-paths = ["blitzkit"]
+#
+# This was a `paths` override until 2026-09-27. Cargo warns that path overrides
+# "were never intended to support" altering the dependency graph and that the
+# warning "will become a hard error", and it points at [patch]. The override
+# also ignored the version requirement silently: a game declaring "0.3" against
+# a local 0.8.0 still compiled the local one, with the lock recording 0.3.0 from
+# the registry. [patch] refuses a version that does not satisfy the requirement
+# instead of quietly substituting, which is the behaviour worth having.
+[patch.crates-io]
+blitzkit = { path = "blitzkit" }
 
 # Every repo under this folder builds into one shared directory, so the engine
 # and its games stop compiling the same dependencies four times over.
