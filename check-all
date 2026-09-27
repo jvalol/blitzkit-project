@@ -9,7 +9,11 @@
 set -uo pipefail
 cd "$(dirname "$0")" || exit 1
 
-repos=(blitzkit pong snake tetris marble slider)
+# blitzkit/shapes is a workspace member of the engine rather than a repo of its
+# own: the teapot and the Klein bottle are objects the examples draw, not engine
+# code, but their tests have to keep running and a test under examples/ never
+# does. Listed separately so its failures are named rather than folded in.
+repos=(blitzkit blitzkit/shapes pong snake tetris marble slider)
 failed=()
 
 for repo in "${repos[@]}"; do
@@ -36,7 +40,7 @@ fi
 
 echo
 if [ ${#failed[@]} -eq 0 ]; then
-  echo "all ${#repos[@]} pass, nothing ships in Claude's words, and the tunnel example matches slider"
+  echo "all ${#repos[@]} crates pass, nothing ships in Claude's words, and the tunnel example matches slider"
 else
   echo "failed: ${failed[*]}"
   exit 1
