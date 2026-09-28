@@ -5,7 +5,7 @@ A graphics engine in Rust, and the games that prove it works.
 - [blitzkit](blitzkit) — the engine, a wrapper around wgpu.
 - [pong](pong) — the first game on it.
 - [snake](snake) — the second.
-- [tetris](tetris) — the third.
+- [tessera](tessera) — the third.
 - [marble](marble) — the first one in 3D.
 - [slider](slider) — a tunnel, and fourteen rings to thread.
 
@@ -33,7 +33,7 @@ cd blitzkit-project
 git clone git@github.com:jvalol/blitzkit.git
 git clone git@github.com:jvalol/pong.git
 git clone git@github.com:jvalol/snake.git
-git clone git@github.com:jvalol/tetris.git
+git clone git@github.com:jvalol/tessera.git
 git clone git@github.com:jvalol/marble.git
 git clone git@github.com:jvalol/slider.git
 ./check-all
