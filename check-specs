@@ -41,6 +41,18 @@ for repo in "${repos[@]}"; do
     continue
   fi
 
+  # The index is prose that nothing reads, so it goes stale silently: blitzkit
+  # sat three specs behind and tessera still described tetrominoes.
+  if [ -f "$repo/specs/README.md" ]; then
+    for spec in "$repo"/specs/[0-9]*.md; do
+      number=$(basename "$spec" | cut -d- -f1)
+      if ! grep -q "\[$number\]" "$repo/specs/README.md"; then
+        echo "  $repo/specs/README.md does not list $number"
+        missing=$((missing + 1))
+      fi
+    done
+  fi
+
   for spec in "$repo"/specs/*.md; do
     grep -qx '\*\*Status:\*\* implemented' "$spec" || continue
 
@@ -55,8 +67,8 @@ for repo in "${repos[@]}"; do
 done
 
 if [ "$missing" -eq 0 ]; then
-  echo "every implemented spec names tests that exist"
+  echo "every implemented spec names tests that exist, and every spec is indexed"
 else
-  echo "$missing spec reference(s) point at nothing"
+  echo "$missing spec problem(s)"
   exit 1
 fi
