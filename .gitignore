@@ -7,5 +7,6 @@
 !/.gitignore
 !/README.md
 !/check-all
+!/check-specs
 !/check-tunnel
 !/.cargo

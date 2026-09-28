@@ -33,6 +33,14 @@ if ! (cd blitzkit && ./scripts/ship-check); then
   failed+=("unclaimed copy")
 fi
 
+# Every acceptance criterion names the test holding it up, and nothing in a
+# cargo run reads a spec, so a renamed test leaves the spec citing a name that
+# answers to nothing while still reading as though the behaviour is covered.
+echo "== spec citations"
+if ! ./check-specs; then
+  failed+=("specs cite missing tests")
+fi
+
 # The tunnel example and slider share an idea and a set of numbers. Nothing in
 # either repo can see the other, so this is the only place the two can be held
 # to the same story.

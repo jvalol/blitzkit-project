@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# Every acceptance criterion in a spec names the test that holds it up. Nothing
+# in a cargo run reads a spec, so a test can be renamed or deleted and the spec
+# goes on citing a name that answers to nothing, which is worse than no
+# citation at all: it reads like the behaviour is covered.
+#
+# Only specs marked implemented are read. A template's placeholder names and a
+# superseded spec's dead ones are both meant to be there.
+#
+# A cited name counts as a test if it has a segment ending in "tests", which is
+# what separates `system::tests::escape_quits_from_the_menu` from the constants
+# and functions specs also mention in backticks.
+#
+# Both `klein::tests::x` and `blitzkit_shapes::klein::tests::x` are accepted.
+# --list never prints the crate, but a spec in a repo holding more than one has
+# to say which crate it means.
+
+set -uo pipefail
+cd "$(dirname "$0")" || exit 1
+
+repos=(blitzkit pong snake tessera marble slider)
+missing=0
+
+for repo in "${repos[@]}"; do
+  have=$(
+    cd "$repo" || exit
+    for pkg in $(cargo metadata --no-deps --format-version 1 2>/dev/null |
+      tr '{' '\n' | sed -n 's/.*"name":"\([^"]*\)".*/\1/p' | sort -u); do
+      cargo test -p "$pkg" --quiet -- --list 2>/dev/null | sed 's/: test$//' |
+        while read -r t; do
+          [ -n "$t" ] || continue
+          echo "$t"
+          echo "${pkg//-/_}::$t"
+        done
+    done | sort -u
+  )
+
+  if [ -z "$have" ]; then
+    echo "  $repo listed no tests at all, so nothing could be checked"
+    missing=$((missing + 1))
+    continue
+  fi
+
+  for spec in "$repo"/specs/*.md; do
+    grep -qx '\*\*Status:\*\* implemented' "$spec" || continue
+
+    while read -r name; do
+      [ -n "$name" ] || continue
+      if ! grep -qxF "$name" <<<"$have"; then
+        echo "  $spec cites $name, which no test answers to"
+        missing=$((missing + 1))
+      fi
+    done < <(grep -ho '`[a-z_0-9:]*`' "$spec" | tr -d '`' | grep 'tests::' | sort -u)
+  done
+done
+
+if [ "$missing" -eq 0 ]; then
+  echo "every implemented spec names tests that exist"
+else
+  echo "$missing spec reference(s) point at nothing"
+  exit 1
+fi
