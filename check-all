@@ -16,9 +16,12 @@ cd "$(dirname "$0")" || exit 1
 repos=(blitzkit blitzkit/shapes pong snake tessera marble slider)
 failed=()
 
+# fmt is here because it was not: piece.rs went into tessera in a state rustfmt
+# rejects and sat there, and the engine and slider had drifted by 42 hunks and
+# 14. Tests and clippy have nothing to say about layout.
 for repo in "${repos[@]}"; do
   echo "== $repo"
-  if ! (cd "$repo" && cargo test --quiet && cargo clippy --quiet --all-targets -- -D warnings); then
+  if ! (cd "$repo" && cargo test --quiet && cargo clippy --quiet --all-targets -- -D warnings && cargo fmt --check); then
     failed+=("$repo")
   fi
 done
