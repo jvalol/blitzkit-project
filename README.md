@@ -21,6 +21,25 @@ repo can see the other, so that script is the only place the pair can be kept
 honest. `.cargo/config.toml`
 points them at one shared build directory.
 
+## Releasing the engine
+
+A release starts in `blitzkit` and finishes in the games, so it touches all six
+repos.
+
+1. Bump `version` in `blitzkit/Cargo.toml`.
+2. `./check-all`.
+3. Commit the bump, then `cargo publish` from `blitzkit`, then tag it. That
+   order matters both ways. Publishing before the commit puts a version on
+   crates.io that corresponds to nothing, which 0.8.3 did for a few minutes.
+   Tagging before the publish leaves a tag behind if the upload fails.
+4. Run each game once so its lockfile picks up the new version, then commit the
+   five lockfiles. The override resolves blitzkit to the checkout, so a lockfile
+   in here records whatever is on disk rather than what crates.io holds, and it
+   changes on every release whether or not anyone commits it.
+
+The games' manifests say `blitzkit = "0.8"` and need no edit unless the minor
+version moves.
+
 ## Getting set up
 
 Clone this repo, then clone the others inside it. The override names the engine
