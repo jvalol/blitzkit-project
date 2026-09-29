@@ -15,7 +15,7 @@ else would. They live together here because `.cargo/config.toml` overrides that
 with the engine checkout, which is what keeps the engine honest: every game is a
 test of using it from outside, and a breaking change shows up before it ships.
 
-`./check-all` tests and lints all seven in dependency order, then runs
+`./check-all` tests and lints every crate in dependency order, then runs
 `./check-tunnel`, which holds blitzkit's tunnel example and the slider game to
 the same numbers. Those two share an idea rather than any code, and neither
 repo can see the other, so that script is the only place the pair can be kept
@@ -24,8 +24,8 @@ points them at one shared build directory.
 
 ## Releasing the engine
 
-A release starts in `blitzkit` and finishes in the games, so it touches all six
-repos.
+A release starts in `blitzkit` and finishes in the games, so it touches every
+repo here.
 
 1. Bump `version` in `blitzkit/Cargo.toml`.
 2. `./check-all`.
