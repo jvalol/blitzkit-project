@@ -1,0 +1,10 @@
+# This repo owns only what ties the project together: three check scripts and a
+# readme. Linguist counts the scripts and calls the whole thing Python, by 97
+# bytes over Shell, which on a pinned card reads as the language of a project
+# that is entirely Rust.
+#
+# linguist-detectable=false keeps them in the repo and out of the count.
+
+check-all      linguist-detectable=false
+check-specs    linguist-detectable=false
+check-tunnel   linguist-detectable=false
