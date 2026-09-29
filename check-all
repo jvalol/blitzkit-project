@@ -33,12 +33,30 @@ if ! (cd blitzkit && ./scripts/ship-check); then
   failed+=("unclaimed copy")
 fi
 
+# ship-check runs from blitzkit's crate root and scans that crate's readme and
+# site, which is right for something published standalone and means it never
+# looks up here. This readme is public on GitHub and is copy, and it sat with
+# two markers in it that nothing would ever have flagged.
+if grep -q '\[COPY - Jake\]' README.md; then
+  echo "README.md still carries copy markers:"
+  grep -n '\[COPY - Jake\]' README.md | sed 's/^/  /'
+  failed+=("unclaimed copy in the project readme")
+fi
+
 # Every acceptance criterion names the test holding it up, and nothing in a
 # cargo run reads a spec, so a renamed test leaves the spec citing a name that
 # answers to nothing while still reading as though the behaviour is covered.
 echo "== spec citations"
 if ! ./check-specs; then
   failed+=("specs cite missing tests")
+fi
+
+# Every example and every game is written about in three places, and adding one
+# means remembering all three. Nothing in a cargo run reads prose, so a new
+# example was listed nowhere and everything still passed.
+echo "== listings"
+if ! ./check-listings; then
+  failed+=("something went unmentioned")
 fi
 
 # The tunnel example and slider share an idea and a set of numbers. Nothing in

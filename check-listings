@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# Every example and every game is written about in three places, and adding one
+# means remembering all three. Nothing in a cargo run reads prose, so a new
+# thing is listed nowhere and everything still passes.
+#
+# This checks that each is mentioned, and deliberately not how. The shape of a
+# sentence is Jake's; whether a thing got left out entirely is a defect.
+#
+# The lists come from the disk rather than from an array here, so a new example
+# or a new game needs no edit to this file. That is the same reason the root
+# .gitignore denies by default: a new game should cost nothing here.
+#
+# Usage: ./check-listings
+
+set -uo pipefail
+cd "$(dirname "$0")" || exit 1
+
+missing=0
+
+# Where a thing has to be mentioned. The project readme, the engine's readme,
+# and the page on the site for that kind of thing.
+example_pages=(README.md blitzkit/README.md blitzkit/site/content/docs/examples.md)
+game_pages=(README.md blitzkit/README.md blitzkit/site/content/docs/games.md)
+
+mentions() {
+  # a word, not a substring: "cubes" must not be matched by "cubesomething"
+  grep -qE "(^|[^a-zA-Z0-9_-])$2([^a-zA-Z0-9_-]|$)" "$1"
+}
+
+echo "== examples"
+for file in blitzkit/examples/*.rs; do
+  [ -e "$file" ] || continue
+  name=$(basename "$file" .rs)
+
+  for page in "${example_pages[@]}"; do
+    if ! mentions "$page" "$name"; then
+      echo "  $page never mentions the $name example"
+      missing=$((missing + 1))
+    fi
+  done
+done
+
+echo "== games"
+for dir in */; do
+  repo=${dir%/}
+  # a game is a crate beside the engine. blitzkit is the engine, and anything
+  # without a manifest is not a crate at all.
+  [ "$repo" = "blitzkit" ] && continue
+  [ -f "$repo/Cargo.toml" ] || continue
+
+  for page in "${game_pages[@]}"; do
+    if ! mentions "$page" "$repo"; then
+      echo "  $page never mentions $repo"
+      missing=$((missing + 1))
+    fi
+  done
+done
+
+if [ "$missing" -eq 0 ]; then
+  echo "every example and every game is written about everywhere it should be"
+else
+  echo "$missing thing(s) went unmentioned"
+  exit 1
+fi

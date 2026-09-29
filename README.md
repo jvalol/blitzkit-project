@@ -81,9 +81,7 @@ rather than a model file it loads.
 ![The same teapot in glass, its far wall, the underside of its lid and its
 handle all showing through the near wall](https://raw.githubusercontent.com/jvalol/blitzkit/main/media/teapot-glass.png)
 
-Press T and it turns to glass. There is no sorting behind that: solid geometry
-goes down first, then everything see-through is drawn twice, far side before
-near, which is enough for a shape that is roughly convex.
+If you press T it turns translucent.
 
 ```
 cargo run --release --example klein
@@ -92,15 +90,12 @@ cargo run --release --example klein
 ![A Klein bottle drawn as a wire mesh, its neck curving over and back down into
 its body, casting a lattice shadow on the floor](https://raw.githubusercontent.com/jvalol/blitzkit/main/media/klein.png)
 
-A Klein bottle you can turn any way you drag it, drawn as a wire mesh so the
-neck is visible where it passes through the wall. The surface has no outside, so
-both sides of it are drawn and neither one is culled away.
+A Klein bottle you can rotate. And you can explore mesh / translucent versions.
 
 ![The same bottle in glass, the neck visible carrying on down inside the body
 after it passes through the wall](https://raw.githubusercontent.com/jvalol/blitzkit/main/media/klein-glass.png)
 
-M gives you the solid surface and T turns that to glass, which is the other way
-to watch the neck carry on inside the body.
+M gives you the solid surface and T makes it translucent.
 
 ```
 cargo run --release --example tunnel
@@ -109,10 +104,20 @@ cargo run --release --example tunnel
 ![Looking down a tunnel of dark and light checks receding to a vanishing point,
 with a gold ring hanging off centre partway down it](https://raw.githubusercontent.com/jvalol/blitzkit/main/media/tunnel.png)
 
-Flying down the inside of a surface, which is the one place two sided geometry
-is the whole picture rather than a detail: without it the tunnel would have no
-walls at all. The tube and the rings are both formulas. Steer through the gold
-ring, which is always the next one.
+Fly down the inside of a surface. There are rings you can aim for while flying, but you don't have to. It's just a game after all.
 
 `cubes` and `rolling` are the other two: lit textured geometry, and a ball with
 collision and shadows.
+
+Three recursive shapes, each made of copies of itself. Up and down change how
+deep each one goes.
+
+```
+cargo run --release --example sierpinski
+cargo run --release --example menger
+cargo run --release --example hilbert
+```
+
+`sierpinski` is four copies of itself with the middle left out, `menger` twenty
+with the middle drilled out of every face, and `hilbert` a line that fills a
+cube, drawn as a tube.
