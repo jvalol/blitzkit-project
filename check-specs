@@ -18,7 +18,7 @@
 set -uo pipefail
 cd "$(dirname "$0")" || exit 1
 
-repos=(blitzkit pong snake tessera marble slider monalisa)
+repos=(blitzkit pong snake tessera marble slider starry)
 missing=0
 
 for repo in "${repos[@]}"; do

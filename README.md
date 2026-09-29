@@ -8,7 +8,7 @@ A graphics engine in Rust, and the games that prove it works.
 - [tessera](tessera) — the third.
 - [marble](marble) — the first one in 3D.
 - [slider](slider) — a tunnel, and fourteen rings to thread.
-- [monalisa](monalisa) — a sliding tile puzzle, in tiles with thickness.
+- [starry](starry) — Van Gogh's Starry Night, sliced into tiles you slide.
 
 Each is its own repo, and each depends on the published blitzkit the way anyone
 else would. They live together here because `.cargo/config.toml` overrides that
@@ -56,7 +56,7 @@ git clone git@github.com:jvalol/snake.git
 git clone git@github.com:jvalol/tessera.git
 git clone git@github.com:jvalol/marble.git
 git clone git@github.com:jvalol/slider.git
-git clone git@github.com:jvalol/monalisa.git
+git clone git@github.com:jvalol/starry.git
 ./check-all
 ```
 
