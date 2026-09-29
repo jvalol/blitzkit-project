@@ -42,8 +42,12 @@ for repo in "${repos[@]}"; do
   fi
 
   # The index is prose that nothing reads, so it goes stale silently: blitzkit
-  # sat three specs behind and tessera still described tetrominoes.
-  if [ -f "$repo/specs/README.md" ]; then
+  # sat three specs behind and tessera still described tetrominoes. A missing
+  # index counts too, which is how slider passed this check while having none.
+  if [ ! -f "$repo/specs/README.md" ]; then
+    echo "  $repo has specs and no specs/README.md to index them"
+    missing=$((missing + 1))
+  else
     for spec in "$repo"/specs/[0-9]*.md; do
       number=$(basename "$spec" | cut -d- -f1)
       if ! grep -q "\[$number\]" "$repo/specs/README.md"; then
