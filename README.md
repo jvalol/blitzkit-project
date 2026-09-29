@@ -8,13 +8,14 @@ A graphics engine in Rust, and the games that prove it works.
 - [tessera](tessera) — the third.
 - [marble](marble) — the first one in 3D.
 - [slider](slider) — a tunnel, and fourteen rings to thread.
+- [monalisa](monalisa) — a sliding tile puzzle, in tiles with thickness.
 
 Each is its own repo, and each depends on the published blitzkit the way anyone
 else would. They live together here because `.cargo/config.toml` overrides that
 with the engine checkout, which is what keeps the engine honest: every game is a
 test of using it from outside, and a breaking change shows up before it ships.
 
-`./check-all` tests and lints all six in dependency order, then runs
+`./check-all` tests and lints all seven in dependency order, then runs
 `./check-tunnel`, which holds blitzkit's tunnel example and the slider game to
 the same numbers. Those two share an idea rather than any code, and neither
 repo can see the other, so that script is the only place the pair can be kept
@@ -55,6 +56,7 @@ git clone git@github.com:jvalol/snake.git
 git clone git@github.com:jvalol/tessera.git
 git clone git@github.com:jvalol/marble.git
 git clone git@github.com:jvalol/slider.git
+git clone git@github.com:jvalol/monalisa.git
 ./check-all
 ```
 
