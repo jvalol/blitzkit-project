@@ -43,6 +43,20 @@ if grep -q '\[COPY - Jake\]' README.md; then
   failed+=("unclaimed copy in the project readme")
 fi
 
+# The two checks above read prose files. Every string a game draws on screen is
+# copy too, and lives in Rust rather than markdown, so both of them looked
+# straight past two markers sitting in lantern's own readout.
+for repo in "${repos[@]}"; do
+  for where in "$repo/src" "$repo/README.md"; do
+    [ -e "$where" ] || continue
+    if grep -rq '\[COPY - Jake\]' "$where"; then
+      echo "$where still carries copy markers:"
+      grep -rn '\[COPY - Jake\]' "$where" | sed 's/^/  /'
+      failed+=("unclaimed copy in $where")
+    fi
+  done
+done
+
 # Every acceptance criterion names the test holding it up, and nothing in a
 # cargo run reads a spec, so a renamed test leaves the spec citing a name that
 # answers to nothing while still reading as though the behaviour is covered.
