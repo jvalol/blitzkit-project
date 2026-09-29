@@ -13,7 +13,7 @@ cd "$(dirname "$0")" || exit 1
 # own: the teapot and the Klein bottle are objects the examples draw, not engine
 # code, but their tests have to keep running and a test under examples/ never
 # does. Listed separately so its failures are named rather than folded in.
-repos=(blitzkit blitzkit/shapes pong snake tessera marble slider starry)
+repos=(blitzkit blitzkit/shapes pong snake tessera marble slider starry lantern)
 failed=()
 
 # fmt is here because it was not: piece.rs went into tessera in a state rustfmt
