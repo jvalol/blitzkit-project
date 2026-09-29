@@ -35,12 +35,11 @@ repo here.
    crates.io that corresponds to nothing, which 0.8.3 did for a few minutes.
    Tagging before the publish leaves a tag behind if the upload fails.
 4. Run each game once so its lockfile picks up the new version, then commit the
-   five lockfiles. The override resolves blitzkit to the checkout, so a lockfile
-   in here records whatever is on disk rather than what crates.io holds, and it
+   lockfiles. The override resolves blitzkit to the checkout, so a lockfile in
+   here records whatever is on disk rather than what crates.io holds, and it
    changes on every release whether or not anyone commits it.
 
-The games' manifests say `blitzkit = "0.8"` and need no edit unless the minor
-version moves.
+The games' manifests name the minor version and need no edit unless it moves.
 
 ## Getting set up
 
@@ -108,8 +107,8 @@ with a gold ring hanging off centre partway down it](https://raw.githubuserconte
 
 Fly down the inside of a surface. There are rings you can aim for while flying, but you don't have to. It's just a game after all.
 
-`cubes` and `rolling` are the other two: lit textured geometry, and a ball with
-collision and shadows.
+`cubes` and `rolling`: lit textured geometry, and a ball with collision and
+shadows.
 
 Three recursive shapes, each made of copies of itself. Up and down change how
 deep each one goes.
