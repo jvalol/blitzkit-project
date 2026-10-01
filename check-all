@@ -9,11 +9,11 @@
 set -uo pipefail
 cd "$(dirname "$0")" || exit 1
 
-# blitzkit/shapes is a workspace member of the engine rather than a repo of its
-# own: the teapot and the Klein bottle are objects the examples draw, not engine
-# code, but their tests have to keep running and a test under examples/ never
-# does. Listed separately so its failures are named rather than folded in.
-repos=(blitzkit blitzkit/shapes pong snake tessera marble slider starry lantern securitysweep)
+# The list comes from ./list-repos rather than an array here, so cloning a game
+# beside the engine is the whole of adding it. It used to be an array, and the
+# copy in check-specs drifted from this one.
+repos=()
+while read -r repo; do repos+=("$repo"); done < <(./list-repos)
 failed=()
 
 # fmt is here because it was not: piece.rs went into tessera in a state rustfmt

@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Every crate in this project, in the order the others should visit them.
+#
+# This exists because the list used to live in an array in each script, and two
+# of them disagreed: securitysweep was in check-all's and never made it into
+# check-specs', so the eighth game's specs went unchecked for a day and nothing
+# said so. check-listings had already solved this by reading the disk, and this
+# is that rule in one place rather than three.
+#
+# A new game needs no edit here. Clone it beside the engine and it is in.
+#
+# Usage: ./list-repos [games]
+#   (none)  every crate, engine first
+#   games   the games only, which is what the readmes and the site write about
+
+set -uo pipefail
+cd "$(dirname "$0")" || exit 1
+
+want=${1:-all}
+
+games() {
+  for dir in */; do
+    repo=${dir%/}
+    # a game is a crate beside the engine. blitzkit is the engine, and anything
+    # without a manifest is not a crate at all.
+    [ "$repo" = "blitzkit" ] && continue
+    [ -f "$repo/Cargo.toml" ] || continue
+    echo "$repo"
+  done
+}
+
+case "$want" in
+  games) games ;;
+  all)
+    # The engine first, because the games build against the checkout and a
+    # failure in it explains theirs.
+    echo blitzkit
+    # blitzkit/shapes is a workspace member of the engine rather than a repo of
+    # its own: the teapot and the Klein bottle are objects the examples draw,
+    # not engine code, but their tests have to keep running and a test under
+    # examples/ never does. Named separately so its failures are named too.
+    [ -f blitzkit/shapes/Cargo.toml ] && echo blitzkit/shapes
+    games
+    ;;
+  *)
+    echo "usage: $0 [games]" >&2
+    exit 2
+    ;;
+esac

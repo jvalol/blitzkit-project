@@ -18,10 +18,17 @@
 set -uo pipefail
 cd "$(dirname "$0")" || exit 1
 
-repos=(blitzkit pong snake tessera marble slider starry lantern)
+# The list comes from ./list-repos, which reads the disk. It was an array here
+# and it fell behind check-all's by a whole game.
+repos=()
+while read -r repo; do repos+=("$repo"); done < <(./list-repos)
 missing=0
 
 for repo in "${repos[@]}"; do
+  # blitzkit/shapes has no specs and is not meant to: it is objects the
+  # examples draw. A crate with no specs directory has nothing to check.
+  [ -d "$repo/specs" ] || continue
+
   have=$(
     cd "$repo" || exit
     for pkg in $(cargo metadata --no-deps --format-version 1 2>/dev/null |

@@ -6,9 +6,10 @@
 # This checks that each is mentioned, and deliberately not how. The shape of a
 # sentence is Jake's; whether a thing got left out entirely is a defect.
 #
-# The lists come from the disk rather than from an array here, so a new example
-# or a new game needs no edit to this file. That is the same reason the root
-# .gitignore denies by default: a new game should cost nothing here.
+# The lists come from the disk, via ./list-repos, rather than from an array
+# here, so a new example or a new game needs no edit to this file. That is the
+# same reason the root .gitignore denies by default: a new game should cost
+# nothing here.
 #
 # Usage: ./check-listings
 
@@ -21,6 +22,7 @@ missing=0
 # and the page on the site for that kind of thing.
 example_pages=(README.md blitzkit/README.md blitzkit/site/content/docs/examples.md)
 game_pages=(README.md blitzkit/README.md blitzkit/site/content/docs/games.md)
+site=blitzkit/site/content/docs/games.md
 
 mentions() {
   # a word, not a substring: "cubes" must not be matched by "cubesomething"
@@ -41,20 +43,27 @@ for file in blitzkit/examples/*.rs; do
 done
 
 echo "== games"
-for dir in */; do
-  repo=${dir%/}
-  # a game is a crate beside the engine. blitzkit is the engine, and anything
-  # without a manifest is not a crate at all.
-  [ "$repo" = "blitzkit" ] && continue
-  [ -f "$repo/Cargo.toml" ] || continue
-
+while read -r repo; do
   for page in "${game_pages[@]}"; do
     if ! mentions "$page" "$repo"; then
       echo "  $page never mentions $repo"
       missing=$((missing + 1))
     fi
   done
-done
+
+  # A game with no picture of it is a game nobody clicks. The site shows the
+  # file from raw.githubusercontent, so the check is two halves: the file has
+  # to exist in the game's repo, and the entry has to point at it. lantern and
+  # securitysweep had neither, and both readmes still read as complete.
+  if [ ! -f "$repo/media/screenshot.png" ]; then
+    echo "  $repo has no media/screenshot.png"
+    missing=$((missing + 1))
+  fi
+  if ! grep -q "jvalol/$repo/main/media/screenshot.png" "$site"; then
+    echo "  $site never shows $repo's screenshot"
+    missing=$((missing + 1))
+  fi
+done < <(./list-repos games)
 
 if [ "$missing" -eq 0 ]; then
   echo "every example and every game is written about everywhere it should be"

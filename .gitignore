@@ -7,6 +7,7 @@
 !/.gitignore
 !/.gitattributes
 !/README.md
+!/list-repos
 !/check-all
 !/check-listings
 !/check-specs
