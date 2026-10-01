@@ -44,6 +44,14 @@ done
 
 echo "== games"
 while read -r repo; do
+  # a game with no spec marked implemented is not a game yet, it is a spec and a
+  # main that prints where to read it. There is nothing to write about and
+  # nothing to photograph, and carom sat in that state for a while. The moment
+  # one spec says implemented, everything below applies.
+  if ! grep -rqx '\*\*Status:\*\* implemented' "$repo"/specs/*.md 2>/dev/null; then
+    continue
+  fi
+
   for page in "${game_pages[@]}"; do
     if ! mentions "$page" "$repo"; then
       echo "  $page never mentions $repo"

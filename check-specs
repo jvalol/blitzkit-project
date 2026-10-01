@@ -43,8 +43,14 @@ for repo in "${repos[@]}"; do
   )
 
   if [ -z "$have" ]; then
-    echo "  $repo listed no tests at all, so nothing could be checked"
-    missing=$((missing + 1))
+    # a repo whose specs are all drafts has nothing to prove yet, and a new
+    # game is exactly that for a while: a spec and a main that prints where to
+    # read it. Anything with an implemented spec and no tests is a real
+    # failure, which is what this was written for.
+    if grep -rqx '\*\*Status:\*\* implemented' "$repo"/specs/*.md 2>/dev/null; then
+      echo "  $repo listed no tests at all, so nothing could be checked"
+      missing=$((missing + 1))
+    fi
     continue
   fi
 
