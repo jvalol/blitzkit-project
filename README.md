@@ -12,7 +12,7 @@ A graphics engine in Rust, and the games that prove it works.
 - [lantern](lantern) — a dark maze, and two lamps to light it with.
 - [securitysweep](securitysweep) — an open yard with four lights sweeping for security.
 - [carom](carom) — thirteen marbles in a ring to shoot at.
-- [diamond](diamond) — nine ball pool.
+- [diamond](diamond) — pool.
 
 Each is its own repo, and each depends on the published blitzkit the way anyone
 else would. They live together here because `.cargo/config.toml` overrides that
