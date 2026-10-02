@@ -114,7 +114,8 @@ with a gold ring hanging off centre partway down it](https://raw.githubuserconte
 Fly down the inside of a surface. There are rings you can aim for while flying, but you don't have to. It's just a game after all.
 
 `cubes` and `rolling`: lit textured geometry, and a ball with collision and
-shadows.
+shadows. `stacking` is the physics holding itself up, a column and a pyramid of
+spheres that stand instead of sinking.
 
 Three recursive shapes, each made of copies of itself. Up and down change how
 deep each one goes.
