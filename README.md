@@ -115,7 +115,8 @@ Fly down the inside of a surface. There are rings you can aim for while flying, 
 
 `cubes` and `rolling`: lit textured geometry, and a ball with collision and
 shadows. `stacking` is the physics holding itself up, a column and a pyramid of
-spheres that stand instead of sinking.
+spheres and a heap of blocks that stand instead of sinking, and `tower` is forty
+blocks doing nothing at all, impressively.
 
 Three recursive shapes, each made of copies of itself. Up and down change how
 deep each one goes.
