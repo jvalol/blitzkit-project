@@ -42,6 +42,10 @@ case "$want" in
     # not engine code, but their tests have to keep running and a test under
     # examples/ never does. Named separately so its failures are named too.
     [ -f blitzkit/shapes/Cargo.toml ] && echo blitzkit/shapes
+    # the arcade is the room the games sit in rather than one of them, so it is
+    # beside games/ and not under it. It is a crate and wants testing; it is not
+    # a game and must not be asked for a bullet in the game lists.
+    [ -f arcade/Cargo.toml ] && echo arcade
     games | sed 's|^|games/|'
     ;;
   *)

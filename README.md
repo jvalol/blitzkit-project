@@ -5,6 +5,7 @@ A graphics engine built in Rust.
 Here are a few games demonstrating it.
 
 - [blitzkit](blitzkit) — the engine, a wrapper around wgpu.
+- [arcade](arcade) — the arcade. All games inside were built using this engine.
 - [pong](games/pong) — the first game on it.
 - [snake](games/snake) — the second.
 - [tessera](games/tessera) — the third.
@@ -17,6 +18,9 @@ Here are a few games demonstrating it.
 - [poolhall](games/poolhall) — pool.
 - [cairn](games/cairn) — a tower of blocks to take apart one at a time.
 - [cascada](games/cascada) — dominoes to stand up and push over.
+
+Enjoy the arcade with `cd arcade && cargo run --release`, or go
+straight to one of the games.
 
 You can run examples with e.g. `cd blitzkit && cargo run --release --example tunnel`
 Or you can run a game with e.g. `cd games/cascada && cargo run --release`
@@ -43,14 +47,13 @@ The games' manifests name the minor version and need no edit unless it moves.
 
 ## Getting set up
 
-Clone this repo, then the engine beside `games`, then the games into it. Both of
-those names matter: the override looks for `blitzkit` and `list-repos` looks in
-`games`. What this folder is called does not.
+Clone this repo.
 
 ```
 git clone git@github.com:jvalol/blitzkit-project.git
 cd blitzkit-project
 git clone git@github.com:jvalol/blitzkit.git
+git clone git@github.com:jvalol/arcade.git
 mkdir -p games && cd games
 git clone git@github.com:jvalol/pong.git
 git clone git@github.com:jvalol/snake.git
@@ -67,7 +70,7 @@ git clone git@github.com:jvalol/cascada.git
 cd .. && ./check-all
 ```
 
-Rust 1.87 or newer, which is wgpu's minimum.
+Rust 1.87 or newer.
 
 ## Demos
 
