@@ -20,7 +20,7 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 EXAMPLE = HERE / "blitzkit" / "examples" / "tunnel.rs"
-GAME = [HERE / "slider" / "src" / name for name in ("tunnel.rs", "ring.rs", "ship.rs")]
+GAME = [HERE / "games" / "slider" / "src" / name for name in ("tunnel.rs", "ring.rs", "ship.rs")]
 
 # What each side calls the same number. Anything here that disagrees is drift.
 SHARED = {
@@ -124,7 +124,7 @@ def main():
     example, game = numbers(EXAMPLE), numbers(GAME)
     problems = drift(example, game)
     problems += placement("example", EXAMPLE)
-    problems += placement("slider", HERE / "slider" / "src" / "ring.rs")
+    problems += placement("slider", HERE / "games" / "slider" / "src" / "ring.rs")
 
     for name, source, keys in (
         ("example", example, ("HOLE", "RIM", "RING_WANDER", "RINGS_TO_PASS", "RING_TURN")),

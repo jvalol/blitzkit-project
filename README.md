@@ -1,37 +1,32 @@
 # blitzkit
 
-A graphics engine in Rust, and the games that prove it works.
+A graphics engine built in Rust.
+
+Here are a few games demonstrating it.
 
 - [blitzkit](blitzkit) — the engine, a wrapper around wgpu.
-- [pong](pong) — the first game on it.
-- [snake](snake) — the second.
-- [tessera](tessera) — the third.
-- [marble](marble) — the first one in 3D.
-- [slider](slider) — a tunnel, and fourteen rings to thread.
-- [starry](starry) — Van Gogh's Starry Night, sliced into tiles you slide.
-- [lantern](lantern) — a dark maze, and two lamps to light it with.
-- [securitysweep](securitysweep) — an open yard with four lights sweeping for security.
-- [carom](carom) — thirteen marbles in a ring to shoot at.
-- [poolhall](poolhall) — pool.
-- [cairn](cairn) — a tower of blocks to take apart one at a time.
-- [cascada](cascada) — dominoes to stand up and push over.
+- [pong](games/pong) — the first game on it.
+- [snake](games/snake) — the second.
+- [tessera](games/tessera) — the third.
+- [marble](games/marble) — the first one in 3D.
+- [slider](games/slider) — a tunnel, and fourteen rings to thread.
+- [starry](games/starry) — Van Gogh's Starry Night, sliced into tiles you slide.
+- [lantern](games/lantern) — a dark maze, and two lamps to light it with.
+- [securitysweep](games/securitysweep) — an open yard with four lights sweeping for security.
+- [carom](games/carom) — thirteen marbles in a ring to shoot at.
+- [poolhall](games/poolhall) — pool.
+- [cairn](games/cairn) — a tower of blocks to take apart one at a time.
+- [cascada](games/cascada) — dominoes to stand up and push over.
 
-Each is its own repo, and each depends on the published blitzkit the way anyone
-else would. They live together here because `.cargo/config.toml` overrides that
-with the engine checkout, which is what keeps the engine honest: every game is a
-test of using it from outside, and a breaking change shows up before it ships.
+You can run examples with e.g. `cd blitzkit && cargo run --release --example tunnel`
+Or you can run a game with e.g. `cd games/cascada && cargo run --release`
+
+Each game is its own repo. Many have corresponding examples in `blitzkit`.
 
 `./check-all` tests and lints every crate in dependency order, then runs
-`./check-tunnel`, which holds blitzkit's tunnel example and the slider game to
-the same numbers. Those two share an idea rather than any code, and neither
-repo can see the other, so that script is the only place the pair can be kept
-honest. `.cargo/config.toml`
-points them at one shared build directory.
+`./check-tunnel`.
 
 ## Releasing the engine
-
-A release starts in `blitzkit` and finishes in the games, so it touches every
-repo here.
 
 1. Bump `version` in `blitzkit/Cargo.toml`.
 2. `./check-all`.
@@ -48,14 +43,15 @@ The games' manifests name the minor version and need no edit unless it moves.
 
 ## Getting set up
 
-Clone this repo, then clone the others inside it. The override names the engine
-folder `blitzkit`, so that one matters. What this folder is called does not, and
-outside it the games build against crates.io.
+Clone this repo, then the engine beside `games`, then the games into it. Both of
+those names matter: the override looks for `blitzkit` and `list-repos` looks in
+`games`. What this folder is called does not.
 
 ```
 git clone git@github.com:jvalol/blitzkit-project.git
 cd blitzkit-project
 git clone git@github.com:jvalol/blitzkit.git
+mkdir -p games && cd games
 git clone git@github.com:jvalol/pong.git
 git clone git@github.com:jvalol/snake.git
 git clone git@github.com:jvalol/tessera.git
@@ -68,11 +64,10 @@ git clone git@github.com:jvalol/carom.git
 git clone git@github.com:jvalol/poolhall.git
 git clone git@github.com:jvalol/cairn.git
 git clone git@github.com:jvalol/cascada.git
-./check-all
+cd .. && ./check-all
 ```
 
-Rust 1.87 or newer, which is wgpu's minimum. Each game runs with `cargo run`
-from its own folder.
+Rust 1.87 or newer, which is wgpu's minimum.
 
 ## Demos
 

@@ -48,7 +48,7 @@ while read -r repo; do
   # main that prints where to read it. There is nothing to write about and
   # nothing to photograph, and carom sat in that state for a while. The moment
   # one spec says implemented, everything below applies.
-  if ! grep -rqx '\*\*Status:\*\* implemented' "$repo"/specs/*.md 2>/dev/null; then
+  if ! grep -rqx '\*\*Status:\*\* implemented' games/"$repo"/specs/*.md 2>/dev/null; then
     continue
   fi
 
@@ -63,7 +63,7 @@ while read -r repo; do
   # file from raw.githubusercontent, so the check is two halves: the file has
   # to exist in the game's repo, and the entry has to point at it. lantern and
   # securitysweep had neither, and both readmes still read as complete.
-  if [ ! -f "$repo/media/screenshot.png" ]; then
+  if [ ! -f "games/$repo/media/screenshot.png" ]; then
     echo "  $repo has no media/screenshot.png"
     missing=$((missing + 1))
   fi
