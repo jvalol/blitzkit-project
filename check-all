@@ -19,9 +19,13 @@ failed=()
 # fmt is here because it was not: piece.rs went into tessera in a state rustfmt
 # rejects and sat there, and the engine and slider had drifted by 42 hunks and
 # 14. Tests and clippy have nothing to say about layout.
+# The release build is here because nothing else builds it. cargo test builds a
+# test harness, not target/release, so every binary under it can be stale while
+# this passes. cascada's was: the pips went in, the gate went green, and the
+# thing that ran had no pips in it.
 for repo in "${repos[@]}"; do
   echo "== $repo"
-  if ! (cd "$repo" && cargo test --quiet && cargo clippy --quiet --all-targets -- -D warnings && cargo fmt --check); then
+  if ! (cd "$repo" && cargo test --quiet && cargo clippy --quiet --all-targets -- -D warnings && cargo fmt --check && cargo build --release --quiet); then
     failed+=("$repo")
   fi
 done
