@@ -14,6 +14,7 @@ A graphics engine in Rust, and the games that prove it works.
 - [carom](carom) — thirteen marbles in a ring to shoot at.
 - [poolhall](poolhall) — pool.
 - [cairn](cairn) — a tower of blocks to take apart one at a time.
+- [cascada](cascada) — dominoes to stand up and push over.
 
 Each is its own repo, and each depends on the published blitzkit the way anyone
 else would. They live together here because `.cargo/config.toml` overrides that
@@ -66,6 +67,7 @@ git clone git@github.com:jvalol/securitysweep.git
 git clone git@github.com:jvalol/carom.git
 git clone git@github.com:jvalol/poolhall.git
 git clone git@github.com:jvalol/cairn.git
+git clone git@github.com:jvalol/cascada.git
 ./check-all
 ```
 
