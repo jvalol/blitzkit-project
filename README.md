@@ -9,27 +9,24 @@ project and you get a window, a renderer and a physics step. The basics, basical
 cargo add blitzkit
 ```
 
-The engine lives in [blitzkit](blitzkit) and its API is on
-[docs.rs](https://docs.rs/blitzkit). This repo is the whole project around it:
-the engine itself, an arcade for demonstrations, and the games, which are each
-their own repo.
+There's a guide at [blitzkit.jva.lol](https://blitzkit.jva.lol). Crate docs are on [docs.rs](https://docs.rs/blitzkit). This repo is the whole project around the engine. The core of the engine itself is in its own repo, [blitzkit](https://github.com/jvalol/blitzkit), there's an arcade for demonstrations, and fuller implementations in games.
 
-Here are a few games demonstrating it.
+These are a few games demonstrating it.
 
-- [blitzkit](blitzkit) — the engine, a wrapper around wgpu.
-- [arcade](arcade) — the arcade. All games inside were built using this engine.
-- [pong](games/pong) — the first game on it.
-- [snake](games/snake) — the second.
-- [tessera](games/tessera) — the third.
-- [marble](games/marble) — the first one in 3D.
-- [slider](games/slider) — a tunnel, and fourteen rings to thread.
-- [starry](games/starry) — Van Gogh's Starry Night, sliced into tiles you slide.
-- [lantern](games/lantern) — a dark maze, and two lamps to light it with.
-- [securitysweep](games/securitysweep) — an open yard with four lights sweeping for security.
-- [carom](games/carom) — thirteen marbles in a ring to shoot at.
-- [poolhall](games/poolhall) — pool.
-- [cairn](games/cairn) — a tower of blocks to take apart one at a time.
-- [cascada](games/cascada) — dominoes to stand up and push over.
+- [blitzkit](https://github.com/jvalol/blitzkit) — the engine, a wrapper around wgpu.
+- [arcade](https://github.com/jvalol/arcade) — the arcade. All games inside were built using this engine.
+- [pong](https://github.com/jvalol/pong) — the first game on it.
+- [snake](https://github.com/jvalol/snake) — the second.
+- [tessera](https://github.com/jvalol/tessera) — the third.
+- [marble](https://github.com/jvalol/marble) — the first one in 3D.
+- [slider](https://github.com/jvalol/slider) — a tunnel, and fourteen rings to thread.
+- [starry](https://github.com/jvalol/starry) — Van Gogh's Starry Night, sliced into tiles you slide.
+- [lantern](https://github.com/jvalol/lantern) — a dark maze, and two lamps to light it with.
+- [securitysweep](https://github.com/jvalol/securitysweep) — an open yard with four lights sweeping for security.
+- [carom](https://github.com/jvalol/carom) — thirteen marbles in a ring to shoot at.
+- [poolhall](https://github.com/jvalol/poolhall) — pool.
+- [cairn](https://github.com/jvalol/cairn) — a tower of blocks to take apart one at a time.
+- [cascada](https://github.com/jvalol/cascada) — dominoes to stand up and push over.
 
 Enjoy the arcade with `cd arcade && cargo run --release`, or go
 straight to one of the games.
