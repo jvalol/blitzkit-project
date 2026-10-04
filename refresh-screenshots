@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# Regenerate media/screenshot.png for every repo that can stage its own shot.
+#
+# A game's opening frame rarely shows what the game is about, so this does not
+# just run a thing and photograph it. A repo opts in by taking a --screenshot
+# argument that puts it in the state worth photographing, and this finds those
+# repos by reading their source rather than by keeping a list.
+#
+# macOS only: it photographs a real window, because nothing in the engine
+# renders to a file. The window is on screen while this runs.
+set -euo pipefail
+cd "$(dirname "$0")"
+
+WIDE=1200
+SETTLE=${SETTLE:-5}
+
+say() { printf '%s\n' "$*"; }
+
+# Which repos can stage a shot. The disk is the list, as it is for check-all.
+staged() {
+  while read -r repo; do
+    [ -d "$repo/src" ] || continue
+    if grep -rqF -- '--screenshot' "$repo/src"; then
+      printf '%s\n' "$repo"
+    fi
+  done < <(./list-repos all)
+}
+
+# The window id for a title, via CoreGraphics. There is no shell for this.
+window_id() {
+  cat > /tmp/blitzkit-window.swift <<SWIFT
+import CoreGraphics
+import Foundation
+let want = (CommandLine.arguments.dropFirst().first ?? "").lowercased()
+let on = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
+for w in on {
+    let name = w[kCGWindowName as String] as? String ?? ""
+    let owner = w[kCGWindowOwnerName as String] as? String ?? ""
+    if name.lowercased() == want || owner.lowercased() == want {
+        print(w[kCGWindowNumber as String] as? Int ?? 0)
+        break
+    }
+}
+SWIFT
+  swift /tmp/blitzkit-window.swift "$1"
+}
+
+wanted=("$@")
+if [ ${#wanted[@]} -eq 0 ]; then
+  while read -r repo; do wanted+=("$repo"); done < <(staged)
+fi
+
+if [ ${#wanted[@]} -eq 0 ]; then
+  say "no repo takes --screenshot yet. Nothing to do."
+  exit 0
+fi
+
+shot=0
+for repo in "${wanted[@]}"; do
+  name=$(basename "$repo")
+  if ! grep -rqF -- '--screenshot' "$repo/src" 2>/dev/null; then
+    say "== $name does not take --screenshot, skipped"
+    continue
+  fi
+
+  say "== $name"
+  (cd "$repo" && cargo build --release --quiet)
+
+  "./target/release/$name" --screenshot >/dev/null 2>&1 &
+  running=$!
+  sleep "$SETTLE"
+
+  id=$(window_id "$name" || true)
+  if [ -z "$id" ]; then
+    say "   no window called $name came up"
+    kill "$running" 2>/dev/null || true
+    continue
+  fi
+
+  raw=$(mktemp -t "$name").png
+  screencapture -x -o -l "$id" "$raw"
+  sips --resampleWidth "$WIDE" "$raw" --out "$repo/media/screenshot.png" >/dev/null
+  rm -f "$raw"
+  kill "$running" 2>/dev/null || true
+  wait "$running" 2>/dev/null || true
+
+  say "   $repo/media/screenshot.png, $WIDE wide"
+  shot=$((shot + 1))
+done
+
+say ""
+say "$shot regenerated. Look at them before committing: a staged shot can stage the wrong thing."

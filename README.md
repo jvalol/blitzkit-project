@@ -2,6 +2,18 @@
 
 A graphics engine built in Rust.
 
+It's on crates.io and anyone, including you, can build with it. Add it to a
+project and you get a window, a renderer and a physics step. The basics, basically. After that it's up to you. Be creative!
+
+```
+cargo add blitzkit
+```
+
+The engine lives in [blitzkit](blitzkit) and its API is on
+[docs.rs](https://docs.rs/blitzkit). This repo is the whole project around it:
+the engine itself, an arcade for demonstrations, and the games, which are each
+their own repo.
+
 Here are a few games demonstrating it.
 
 - [blitzkit](blitzkit) — the engine, a wrapper around wgpu.
@@ -27,50 +39,39 @@ Or you can run a game with e.g. `cd games/cascada && cargo run --release`
 
 Each game is its own repo. Many have corresponding examples in `blitzkit`.
 
-`./check-all` tests and lints every crate in dependency order, then runs
-`./check-tunnel`.
-
-## Releasing the engine
-
-1. Bump `version` in `blitzkit/Cargo.toml`.
-2. `./check-all`.
-3. Commit the bump, then `cargo publish` from `blitzkit`, then tag it. That
-   order matters both ways. Publishing before the commit puts a version on
-   crates.io that corresponds to nothing, which 0.8.3 did for a few minutes.
-   Tagging before the publish leaves a tag behind if the upload fails.
-4. Run each game once so its lockfile picks up the new version, then commit the
-   lockfiles. The override resolves blitzkit to the checkout, so a lockfile in
-   here records whatever is on disk rather than what crates.io holds, and it
-   changes on every release whether or not anyone commits it.
-
-The games' manifests name the minor version and need no edit unless it moves.
-
 ## Getting set up
+
+To build on the engine `cargo add blitzkit`.
 
 Clone this repo.
 
 ```
-git clone git@github.com:jvalol/blitzkit-project.git
+git clone https://github.com/jvalol/blitzkit-project.git
 cd blitzkit-project
-git clone git@github.com:jvalol/blitzkit.git
-git clone git@github.com:jvalol/arcade.git
+git clone https://github.com/jvalol/blitzkit.git
+git clone https://github.com/jvalol/arcade.git
 mkdir -p games && cd games
-git clone git@github.com:jvalol/pong.git
-git clone git@github.com:jvalol/snake.git
-git clone git@github.com:jvalol/tessera.git
-git clone git@github.com:jvalol/marble.git
-git clone git@github.com:jvalol/slider.git
-git clone git@github.com:jvalol/starry.git
-git clone git@github.com:jvalol/lantern.git
-git clone git@github.com:jvalol/securitysweep.git
-git clone git@github.com:jvalol/carom.git
-git clone git@github.com:jvalol/poolhall.git
-git clone git@github.com:jvalol/cairn.git
-git clone git@github.com:jvalol/cascada.git
+git clone https://github.com/jvalol/pong.git
+git clone https://github.com/jvalol/snake.git
+git clone https://github.com/jvalol/tessera.git
+git clone https://github.com/jvalol/marble.git
+git clone https://github.com/jvalol/slider.git
+git clone https://github.com/jvalol/starry.git
+git clone https://github.com/jvalol/lantern.git
+git clone https://github.com/jvalol/securitysweep.git
+git clone https://github.com/jvalol/carom.git
+git clone https://github.com/jvalol/poolhall.git
+git clone https://github.com/jvalol/cairn.git
+git clone https://github.com/jvalol/cascada.git
 cd .. && ./check-all
 ```
 
 Rust 1.87 or newer.
+
+`./check-all` tests and lints every crate in dependency order, then runs
+`./check-tunnel`.
+
+Cutting a release is in [RELEASING.md](RELEASING.md).
 
 ## Demos
 

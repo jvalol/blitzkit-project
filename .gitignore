@@ -7,9 +7,11 @@
 !/.gitignore
 !/.gitattributes
 !/README.md
+!/RELEASING.md
 !/list-repos
 !/check-all
 !/check-listings
 !/check-specs
 !/check-tunnel
+!/refresh-screenshots
 !/.cargo
