@@ -68,7 +68,8 @@ Rust 1.87 or newer.
 `./check-all` tests and lints every crate in dependency order, then runs
 `./check-tunnel`.
 
-Cutting a release is in [RELEASING.md](RELEASING.md).
+Cutting a release is `./release <version>`, and [RELEASING.md](RELEASING.md)
+says why it is a script.
 
 ## Demos
 

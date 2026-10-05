@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+# Cut a release of the engine: ./release 0.13.0
+#
+# This was five numbered steps in RELEASING.md and fifteen repos, done by hand,
+# and the order of them is not obvious from the outside. It matters twice over.
+# Publishing before the commit puts a version on crates.io corresponding to
+# nothing, which 0.8.3 did for a few minutes. Pushing the games before the
+# publish leaves a window where a clone of any of them asks for a version that
+# does not exist yet.
+#
+# So the order is here rather than in anyone's head, and the only thing it asks
+# of you is one yes before the upload, because that part cannot be taken back.
+set -euo pipefail
+cd "$(dirname "$0")"
+
+want=${1:-}
+if [ -z "$want" ]; then
+  echo "usage: ./release <version>, as in ./release 0.13.0" >&2
+  exit 2
+fi
+if ! printf '%s' "$want" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+  echo "'$want' is not a version" >&2
+  exit 2
+fi
+
+say() { printf '\n== %s\n' "$*"; }
+
+have=$(grep -m1 '^version = ' blitzkit/Cargo.toml | cut -d'"' -f2)
+if [ "$have" = "$want" ]; then
+  echo "blitzkit already says $want" >&2
+  exit 2
+fi
+
+# The minor is what a game's manifest names, so it only edits them when it moves.
+minor_now=$(printf '%s' "$have" | cut -d. -f1-2)
+minor_want=$(printf '%s' "$want" | cut -d. -f1-2)
+
+repos=()
+while read -r repo; do repos+=("$repo"); done < <(./list-repos all | grep -v 'shapes')
+
+say "where everything stands"
+dirty=()
+for repo in "." "${repos[@]}"; do
+  [ -n "$(git -C "$repo" status --porcelain)" ] && dirty+=("$repo")
+  if [ "$(git -C "$repo" rev-parse HEAD)" != "$(git -C "$repo" rev-parse @{u} 2>/dev/null)" ]; then
+    dirty+=("$repo (not level with its remote)")
+  fi
+done
+if [ ${#dirty[@]} -ne 0 ]; then
+  echo "a release starts from a clean tree. These are not:" >&2
+  printf '  %s\n' "${dirty[@]}" >&2
+  exit 1
+fi
+echo "all clean and level"
+
+say "$have to $want"
+sed -i '' "s/^version = \"$have\"\$/version = \"$want\"/" blitzkit/Cargo.toml
+if [ "$minor_now" != "$minor_want" ]; then
+  for repo in "${repos[@]}"; do
+    [ "$repo" = "blitzkit" ] && continue
+    sed -i '' "s/^blitzkit = \"$minor_now\"\$/blitzkit = \"$minor_want\"/" "$repo/Cargo.toml"
+  done
+  echo "and every manifest from $minor_now to $minor_want, because the minor moved"
+else
+  echo "the manifests name $minor_now and need no edit"
+fi
+
+say "the gate"
+./check-all
+
+say "committing the bump"
+(cd blitzkit && git commit -q -m "$want" -- Cargo.toml)
+if [ "$minor_now" != "$minor_want" ]; then
+  for repo in "${repos[@]}"; do
+    [ "$repo" = "blitzkit" ] && continue
+    (cd "$repo" && git commit -q -m "blitzkit $want" -- Cargo.toml)
+  done
+fi
+echo "committed, pushed nowhere yet"
+
+say "publishing"
+echo "This uploads blitzkit $want to crates.io and cannot be undone."
+printf 'go ahead? [y/N] '
+read -r answer
+case "$answer" in
+  y | Y | yes | YES) ;;
+  *)
+    echo "stopped. The bump is committed and nothing is pushed; git reset --hard to undo it." >&2
+    exit 1
+    ;;
+esac
+(cd blitzkit && cargo publish)
+
+# After the upload, because a tag left behind by a failed one is worse than no
+# tag, and because the games now ask for a version that has to exist.
+say "tagging and pushing"
+(cd blitzkit && git tag "v$want" && git push -q origin HEAD "v$want")
+for repo in "${repos[@]}"; do
+  [ "$repo" = "blitzkit" ] && continue
+  (cd "$repo" && git push -q)
+done
+echo "blitzkit v$want and every game"
+
+say "the lockfiles and the pictures"
+# The override resolves blitzkit to the checkout, so every lockfile in here
+# already records what is on disk; check-all built them a moment ago.
+./refresh-screenshots
+for repo in "${repos[@]}"; do
+  [ "$repo" = "blitzkit" ] && continue
+  (cd "$repo" && git add -A Cargo.lock media 2>/dev/null || true)
+  if [ -n "$(git -C "$repo" diff --cached --name-only)" ]; then
+    (cd "$repo" && git commit -q -m "Lock blitzkit $want, and the picture that goes with it" && git push -q)
+  fi
+done
+
+say "done"
+echo "blitzkit $want is published, tagged, and every repo is level."
+echo "Look at the thirteen pictures: a staged shot can stage the wrong thing."
