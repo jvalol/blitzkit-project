@@ -124,10 +124,11 @@ cargo run --release --example chain
 
 Play with a ball on a chain.
 
-There are more: `cubes`, `rolling`, `stacking`, `tower`, and three recursive
-shapes.
-
 ```
+cargo run --release --example cubes
+cargo run --release --example rolling
+cargo run --release --example stacking
+cargo run --release --example tower
 cargo run --release --example sierpinski
 cargo run --release --example menger
 cargo run --release --example hilbert
