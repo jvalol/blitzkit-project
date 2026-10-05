@@ -122,9 +122,7 @@ cargo run --release --example chain
 
 ![A heavy grey ball on a chain of sixteen beads hanging over a grey floor, with a tan brick wall to its right half knocked down, loose blocks lying out across the floor and the standing part leaning](https://raw.githubusercontent.com/jvalol/blitzkit/main/media/chain.png)
 
-A wrecking ball on a chain, swung at a wall. Sixteen ropes holding sixteen
-beads, which the engine had no way to express until it learned to hold two
-bodies together as well as push them apart.
+Play with a ball on a chain.
 
 `cubes` and `rolling`: lit textured geometry, and a ball with collision and
 shadows. `stacking` is the physics holding itself up, a column and a pyramid of
