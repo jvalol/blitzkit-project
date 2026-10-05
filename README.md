@@ -27,6 +27,7 @@ These are a few games demonstrating it.
 - [poolhall](https://github.com/jvalol/poolhall) — pool.
 - [cairn](https://github.com/jvalol/cairn) — a tower of blocks to take apart one at a time.
 - [cascada](https://github.com/jvalol/cascada) — dominoes to stand up and push over.
+- [monty](https://github.com/jvalol/monty), three doors and a host whose rule decides the odds.
 
 Enjoy the arcade with `cd arcade && cargo run --release`, or go
 straight to one of the games.
@@ -60,6 +61,7 @@ git clone https://github.com/jvalol/carom.git
 git clone https://github.com/jvalol/poolhall.git
 git clone https://github.com/jvalol/cairn.git
 git clone https://github.com/jvalol/cascada.git
+git clone https://github.com/jvalol/monty.git
 cd .. && ./check-all
 ```
 
