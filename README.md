@@ -13,21 +13,21 @@ There's a guide at [blitzkit.jva.lol](https://blitzkit.jva.lol). Crate docs are 
 
 These are a few games demonstrating it.
 
-- [blitzkit](https://github.com/jvalol/blitzkit) — the engine, a wrapper around wgpu.
-- [arcade](https://github.com/jvalol/arcade) — the arcade. All games inside were built using this engine.
-- [pong](https://github.com/jvalol/pong) — the first game on it.
-- [snake](https://github.com/jvalol/snake) — the second.
-- [tessera](https://github.com/jvalol/tessera) — the third.
-- [marble](https://github.com/jvalol/marble) — the first one in 3D.
-- [slider](https://github.com/jvalol/slider) — a tunnel, and fourteen rings to thread.
-- [starry](https://github.com/jvalol/starry) — Van Gogh's Starry Night, sliced into tiles you slide.
-- [lantern](https://github.com/jvalol/lantern) — a dark maze, and two lamps to light it with.
-- [securitysweep](https://github.com/jvalol/securitysweep) — an open yard with four lights sweeping for security.
-- [carom](https://github.com/jvalol/carom) — thirteen marbles in a ring to shoot at.
-- [poolhall](https://github.com/jvalol/poolhall) — pool.
-- [cairn](https://github.com/jvalol/cairn) — a tower of blocks to take apart one at a time.
-- [cascada](https://github.com/jvalol/cascada) — dominoes to stand up and push over.
-- [monty](https://github.com/jvalol/monty) - classic monty hall demonstration.
+- [blitzkit](https://github.com/jvalol/blitzkit) the engine, a wrapper around wgpu.
+- [arcade](https://github.com/jvalol/arcade) the arcade. All games inside were built using this engine.
+- [pong](https://github.com/jvalol/pong) the first game on it.
+- [snake](https://github.com/jvalol/snake) the second.
+- [tessera](https://github.com/jvalol/tessera) the third.
+- [marble](https://github.com/jvalol/marble) the first one in 3D.
+- [slider](https://github.com/jvalol/slider) a tunnel you fly through, aiming for rings.
+- [starry](https://github.com/jvalol/starry) Van Gogh's Starry Night. A tile game.
+- [lantern](https://github.com/jvalol/lantern) a maze game in a dark environment. It's got a map and you have candles and sconces to light the way.
+- [securitysweep](https://github.com/jvalol/securitysweep) an open yard with four lights and a few lasers sweeping for security. Make it to the other side without getting caught!
+- [carom](https://github.com/jvalol/carom) a game of marbles.
+- [poolhall](https://github.com/jvalol/poolhall) a game of pool.
+- [cairn](https://github.com/jvalol/cairn) a tower of blocks to take apart one at a time.
+- [cascada](https://github.com/jvalol/cascada) dominoes to stand up and push over. It starts with a yin yang pattern, but you can stand up any other dominoes.
+- [monty](https://github.com/jvalol/monty) classic monty hall demonstration.
 
 Enjoy the arcade with `cd arcade && cargo run --release`, or go
 straight to one of the games.
