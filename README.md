@@ -116,6 +116,16 @@ with a gold ring hanging off centre partway down it](https://raw.githubuserconte
 
 Fly down the inside of a surface. There are rings you can aim for while flying, but you don't have to. It's just a game after all.
 
+```
+cargo run --release --example chain
+```
+
+![A heavy grey ball on a chain of sixteen beads hanging over a grey floor, with a tan brick wall to its right half knocked down, loose blocks lying out across the floor and the standing part leaning](https://raw.githubusercontent.com/jvalol/blitzkit/main/media/chain.png)
+
+A wrecking ball on a chain, swung at a wall. Sixteen ropes holding sixteen
+beads, which the engine had no way to express until it learned to hold two
+bodies together as well as push them apart.
+
 `cubes` and `rolling`: lit textured geometry, and a ball with collision and
 shadows. `stacking` is the physics holding itself up, a column and a pyramid of
 spheres and a heap of blocks that stand instead of sinking, and `tower` is forty
