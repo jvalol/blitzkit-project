@@ -124,20 +124,11 @@ cargo run --release --example chain
 
 Play with a ball on a chain.
 
-`cubes` and `rolling`: lit textured geometry, and a ball with collision and
-shadows. `stacking` is the physics holding itself up, a column and a pyramid of
-spheres and a heap of blocks that stand instead of sinking, and `tower` is forty
-blocks doing nothing at all, impressively.
-
-Three recursive shapes, each made of copies of itself. Up and down change how
-deep each one goes.
+There are more: `cubes`, `rolling`, `stacking`, `tower`, and three recursive
+shapes.
 
 ```
 cargo run --release --example sierpinski
 cargo run --release --example menger
 cargo run --release --example hilbert
 ```
-
-`sierpinski` is four copies of itself with the middle left out, `menger` twenty
-with the middle drilled out of every face, and `hilbert` a line that fills a
-cube, drawn as a tube.
