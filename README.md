@@ -91,7 +91,7 @@ rather than a model file it loads.
 ![The same teapot in glass, its far wall, the underside of its lid and its
 handle all showing through the near wall](https://raw.githubusercontent.com/jvalol/blitzkit/main/media/teapot-glass.png)
 
-If you press T it turns translucent.
+Turn it translucent by pressing T.
 
 ```
 cargo run --release --example klein
@@ -100,12 +100,12 @@ cargo run --release --example klein
 ![A Klein bottle drawn as a wire mesh, its neck curving over and back down into
 its body, casting a lattice shadow on the floor](https://raw.githubusercontent.com/jvalol/blitzkit/main/media/klein.png)
 
-A Klein bottle you can rotate. And you can explore mesh / translucent versions.
+A Klein bottle.
 
 ![The same bottle in glass, the neck visible carrying on down inside the body
 after it passes through the wall](https://raw.githubusercontent.com/jvalol/blitzkit/main/media/klein-glass.png)
 
-M gives you the solid surface and T makes it translucent.
+Press M to make it solid. Press T to make it translucent.
 
 ```
 cargo run --release --example tunnel
