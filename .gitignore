@@ -16,3 +16,7 @@
 !/refresh-screenshots
 !/release
 !/.cargo
+
+# The skills that say how to work on these repos, which tie the project
+# together as much as the checks do.
+!/.claude

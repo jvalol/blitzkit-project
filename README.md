@@ -132,4 +132,5 @@ cargo run --release --example tower
 cargo run --release --example sierpinski
 cargo run --release --example menger
 cargo run --release --example hilbert
+cargo run --release --example ripple
 ```
