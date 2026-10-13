@@ -134,3 +134,8 @@ cargo run --release --example menger
 cargo run --release --example hilbert
 cargo run --release --example ripple
 ```
+
+## License
+
+MIT or Apache-2.0, whichever suits you. Everything under this
+folder is its own repo and says the same.

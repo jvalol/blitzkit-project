@@ -8,6 +8,8 @@
 !/.gitattributes
 !/README.md
 !/RELEASING.md
+!/LICENSE-MIT
+!/LICENSE-APACHE
 !/list-repos
 !/check-all
 !/check-listings
