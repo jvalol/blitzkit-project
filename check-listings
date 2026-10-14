@@ -73,6 +73,49 @@ while read -r repo; do
   fi
 done < <(./list-repos games)
 
+# Every picture the site pulls out of a repo, both ways round.
+#
+# The games loop above is about games, and the arcade is deliberately not one:
+# it is the room the games sit in, it lives beside games/ rather than under it,
+# and `list-repos games` leaves it out so that nothing asks it for a bullet in
+# a game list. The cost of that was invisible until it was looked for. The
+# arcade shows four pictures on the site and not one of them was checked by
+# anything, `screenshot.png` included.
+#
+# So this asks the question the games loop cannot: for every repo in the
+# project, does every picture the site asks for exist, and is every picture in
+# the repo asked for? A file nobody shows is a file nobody will notice going
+# stale, and a picture the site asks for and the repo has not got is a broken
+# image on a published page.
+#
+# Only the ones served out of a repo, which is what `raw.githubusercontent`
+# marks. The engine's own example pictures are built into the site and come
+# off its own /media, so they are a different question and not this one.
+echo "== pictures"
+docs=(blitzkit/site/content/docs/*.md)
+while read -r path; do
+  name=$(basename "$path")
+  shown=$(grep -ho "jvalol/$name/main/media/[A-Za-z0-9._-]*" "${docs[@]}" |
+    sed "s|jvalol/$name/main/||" | sort -u)
+  [ -n "$shown" ] || continue
+
+  while read -r picture; do
+    [ -n "$picture" ] || continue
+    if [ ! -f "$path/$picture" ]; then
+      echo "  the site shows $name's $picture, which is not in the repo"
+      missing=$((missing + 1))
+    fi
+  done <<< "$shown"
+
+  for picture in "$path"/media/*; do
+    [ -f "$picture" ] || continue
+    if ! printf '%s\n' "$shown" | grep -qxF "media/$(basename "$picture")"; then
+      echo "  nothing on the site shows $name's media/$(basename "$picture")"
+      missing=$((missing + 1))
+    fi
+  done
+done < <(./list-repos all)
+
 if [ "$missing" -eq 0 ]; then
   echo "every example and every game is written about everywhere it should be"
 else
