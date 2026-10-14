@@ -4,8 +4,14 @@
 # goes on citing a name that answers to nothing, which is worse than no
 # citation at all: it reads like the behaviour is covered.
 #
-# Only specs marked implemented are read. A template's placeholder names and a
-# superseded spec's dead ones are both meant to be there.
+# Only specs marked implemented are read for dead citations, which makes the
+# status field load bearing: a spec left at draft is a spec nothing checks. So
+# the status is checked too, from the other side. A draft all of whose tests
+# already exist is a spec that was built and never had its one word changed,
+# and eight of those were sitting here with ten rotted citations between them.
+#
+# A template's placeholder names and a superseded spec's dead ones are both
+# meant to be there.
 #
 # A cited name counts as a test if it has a segment ending in "tests", which is
 # what separates `system::tests::escape_quits_from_the_menu` from the constants
@@ -80,6 +86,36 @@ for repo in "${repos[@]}"; do
         missing=$((missing + 1))
       fi
     done < <(grep -ho '`[a-z_0-9:]*`' "$spec" | tr -d '`' | grep 'tests::' | sort -u)
+  done
+
+  # And the other way about: a draft every one of whose tests exists is a spec
+  # that got built and never had its one word changed.
+  #
+  # Status is what decides whether the loop above reads a spec at all, so a
+  # stale draft is a spec outside this check entirely. Eight of them were:
+  # two of the engine's shapes, all five of lantern's and monty's one, with
+  # ten citations between them already naming tests that had been renamed
+  # away. Nothing said so, because nothing was looking.
+  #
+  # Only when every one resolves. A spec written before its code cites tests
+  # that do not exist yet and is a real draft, which is what blitzkit's 0024
+  # is: it says in its own body that it waits for something to need it, and
+  # eight of its ten names are things nobody has written.
+  for spec in "$repo"/specs/*.md; do
+    grep -qx '\*\*Status:\*\* draft' "$spec" || continue
+
+    cited=0
+    answered=0
+    while read -r name; do
+      [ -n "$name" ] || continue
+      cited=$((cited + 1))
+      grep -qxF "$name" <<<"$have" && answered=$((answered + 1))
+    done < <(grep -ho '`[a-z_0-9:]*`' "$spec" | tr -d '`' | grep 'tests::' | sort -u)
+
+    if [ "$cited" -gt 0 ] && [ "$cited" -eq "$answered" ]; then
+      echo "  $spec is a draft and every one of its $cited tests exists, so it is implemented"
+      missing=$((missing + 1))
+    fi
   done
 done
 
