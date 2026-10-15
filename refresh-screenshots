@@ -18,6 +18,58 @@ cd "$(dirname "$0")"
 WIDE=1200
 SETTLE=${SETTLE:-5}
 
+# How long to wait for a game to answer a question before taking the silence
+# as the answer.
+ASKED=${ASKED:-2}
+
+# Ask a game which pictures it has, without hanging when it does not know the
+# question.
+#
+# Only the arcade answers --screenshots. Every other game takes an argument it
+# does not recognise, ignores it, and opens its window, so this blocked until
+# somebody closed that window by hand: the run stopped dead at the first game
+# and stayed there, once per game, which is not a thing to leave for whoever
+# runs this next. Jake sat closing windows for half an hour before it was
+# spotted.
+#
+# So it is asked in the background and given two seconds. A game that answers
+# has answered long before that and exited; a game that opened a window is
+# still alive and gets closed from here.
+ask_shots() {
+  local name=$1 said q waited
+  said=$(mktemp)
+
+  "./target/release/$name" --screenshots >"$said" 2>/dev/null &
+  q=$!
+
+  waited=0
+  while kill -0 "$q" 2>/dev/null && [ "$waited" -lt $((ASKED * 10)) ]; do
+    sleep 0.1
+    waited=$((waited + 1))
+  done
+
+  stop "$q"
+  cat "$said"
+  rm -f "$said"
+}
+
+# End a run, and mean it.
+#
+# A game that ignores a polite ask leaves `wait` blocking for ever, which is
+# the same hang by another road.
+stop() {
+  kill "$1" 2>/dev/null || true
+
+  local waited=0
+  while kill -0 "$1" 2>/dev/null && [ "$waited" -lt 20 ]; do
+    sleep 0.1
+    waited=$((waited + 1))
+  done
+
+  kill -9 "$1" 2>/dev/null || true
+  wait "$1" 2>/dev/null || true
+}
+
 say() { printf '%s\n' "$*"; }
 
 # Which repos can stage a shot. The disk is the list, as it is for check-all.
@@ -79,7 +131,7 @@ for repo in "${wanted[@]}"; do
   # hand once and nothing here could take them again, so a room that changed
   # under them would leave three pictures of a building that no longer
   # existed, published, with every check green.
-  shots=$("./target/release/$name" --screenshots 2>/dev/null || true)
+  shots=$(ask_shots "$name")
   [ -n "$shots" ] || shots=media/screenshot.png
 
   # Split on the tab by hand, with IFS emptied. Read with the tab as its
@@ -114,7 +166,7 @@ for repo in "${wanted[@]}"; do
     id=$(window_id "$name" || true)
     if [ -z "$id" ]; then
       say "   no window called $name came up for ${want:-the staged shot}"
-      kill "$running" 2>/dev/null || true
+      stop "$running"
       continue
     fi
 
@@ -122,8 +174,7 @@ for repo in "${wanted[@]}"; do
     screencapture -x -o -l "$id" "$raw"
     sips --resampleWidth "$WIDE" "$raw" --out "$repo/$file" >/dev/null
     rm -f "$raw"
-    kill "$running" 2>/dev/null || true
-    wait "$running" 2>/dev/null || true
+    stop "$running"
 
     say "   $repo/$file, $WIDE wide"
     shot=$((shot + 1))
