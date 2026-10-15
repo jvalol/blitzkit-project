@@ -217,6 +217,37 @@ for file in "$engine"/media/*; do
   fi
 done
 
+# and the examples built for a browser, per spec 0053, which are the same
+# question a third time: every example the page offers to play has to be in
+# blitzkit/web, and every file in blitzkit/web has to be offered. A build
+# nobody plays is nineteen megabytes of repository nobody will notice going
+# stale, and a button for an example that was never built is a page that
+# fetches a 404 and tells the reader it would not start.
+echo "== the examples built for a browser"
+played=$(grep -ho 'play name="[A-Za-z0-9._-]*"' "$engine"/site/content/docs/*.md 2>/dev/null |
+  sed 's|play name="||; s|"||' | sort -u)
+
+while read -r name; do
+  [ -n "$name" ] || continue
+  for part in "$name.js" "${name}_bg.wasm"; do
+    if [ ! -f "$engine/web/$part" ]; then
+      echo "  the site offers to play $name, and $engine/web/$part is not there"
+      missing=$((missing + 1))
+    fi
+  done
+done <<< "$played"
+
+for file in "$engine"/web/*; do
+  [ -f "$file" ] || continue
+  name=$(basename "$file")
+  name=${name%.js}
+  name=${name%_bg.wasm}
+  if ! printf '%s\n' "$played" | grep -qxF "$name"; then
+    echo "  nothing on the site plays $engine/web/$(basename "$file")"
+    missing=$((missing + 1))
+  fi
+done
+
 if [ "$missing" -eq 0 ]; then
   echo "every example and every game is written about everywhere it should be"
 else

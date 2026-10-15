@@ -39,7 +39,8 @@ RATE=${RATE:-30}
 # with a little to spare.
 PREROLL=${PREROLL:-2}
 
-# What to film, as: example, wait seconds, film seconds, keys.
+# What to film, as: example, wait seconds, film seconds, poster seconds,
+# keys.
 #
 # The wait is how long into the clip the keys start, not how long before the
 # camera opens: the camera is running before the example is, so the opening
@@ -47,8 +48,9 @@ PREROLL=${PREROLL:-2}
 #
 # The keys are what somebody would press while watching, sent once the camera
 # is running. A key is a letter, `space`, `click`, or an arrow as
-# `left`/`right`/`up`/`down`; `hold:<key>:<seconds>` holds one down; and a
-# number on its own is a wait in seconds.
+# `left`/`right`/`up`/`down`; `hold:<key>:<seconds>` holds one down;
+# `tap:<key>:<many>:<gap>` hits it over and over; and a number on its own is a
+# wait in seconds.
 #
 # Digits are not in that list and cannot be. `1` and `2` pick cork or granite
 # in ripple and neither reaches the window, sent as `keystroke "2"` or as its
@@ -61,21 +63,31 @@ PREROLL=${PREROLL:-2}
 # released inside one frame, so the ball never moved: eight seconds of a ball
 # sitting still, in an example called rolling. A held key is a keyDown, a
 # wait and a keyUp posted through Quartz, which is what `hold` does.
+#
+# And tapping is a third thing, which took chain to find. Holding a key gives
+# one keyDown: a synthetic one does not set the autorepeat going, because
+# autorepeat happens below where these events are posted. rolling cannot tell,
+# since it reads the key as a state it holds. chain adds 4.2 to the ball's
+# speed per event, so a hold is one shove however long it is held, and the
+# clip was a wrecking ball arriving at a wall with nothing behind it and
+# tipping one brick off the top: 38 of 39 left standing, which Jake read off
+# the video as blocks being nudged. Twenty taps a thirtieth of a second apart
+# leave 11 of 39 standing and stretch the chain 3.0 per cent against 1.5.
 CLIPS=$(cat <<'LIST'
-rolling	2.5	9	hold:right:1.4 hold:up:1.2 hold:left:1.4 hold:down:1.2 o
-stacking	5	10	k
-tower	4.5	9	space
-cubes	0.5	8	3 l 3 l
-teapot	1	7	hold:right:2.5 hold:q:1.5
-teapot-glass	1	7	t 0.4 hold:right:2.5 hold:e:1.5
-klein	1	7	hold:right:3 hold:q:1.5
-klein-glass	1	7	m 0.3 t 0.4 hold:right:3
-tunnel	0.5	7
-sierpinski	1	7	1.5 up 2 up 2 down
-menger	1	7	1.5 up 2.5 down
-hilbert	1	7	1.5 up 2.5 down
-ripple	1	9	1 space 1.6 space 1.6 space 1.6 space
-chain	1.5	9	hold:left:2 3
+rolling	2.5	9	5	hold:right:1.4 hold:up:1.2 hold:left:1.4 hold:down:1.2 o
+stacking	5	10	6.5	k
+tower	4.5	9	6	space
+cubes	0.5	8	5	3 l 3 l
+teapot	1	7	4	hold:right:2.5 hold:q:1.5
+teapot-glass	1	7	5	t 0.4 hold:right:2.5 hold:e:1.5
+klein	1	7	4	hold:right:3 hold:q:1.5
+klein-glass	1	7	5	m 0.3 t 0.4 hold:right:3
+tunnel	0.5	7	4
+sierpinski	1	7	5	1.5 up 2 up 2 down
+menger	1	7	5	1.5 up 2.5 down
+hilbert	1	7	5	1.5 up 2.5 down
+ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
+chain	1.5	8	3.4	1 tap:right:20:0.035 3
 LIST
 )
 
@@ -169,6 +181,32 @@ key_code() {
 # System Events has no way to say it: its `key code` is a press and a release
 # with nothing in between, which is right for a key that does a thing and
 # wrong for a key that means keep doing this. See the note on the table.
+# Hit a key over and over, as fast as a hand never could.
+#
+# Not the same as holding it: see the note on the table. A key that means do
+# this now wants this, and a key that means keep doing this wants `hold`.
+tap() {
+  local code
+  code=$(key_code "$1")
+  [ -n "$code" ] || { say "   no key code for $1"; return; }
+
+  cat > /tmp/blitzkit-tap.swift <<'SWIFT'
+import CoreGraphics
+import Foundation
+let a = CommandLine.arguments.dropFirst()
+guard let code = UInt16(a.first ?? ""), let many = Int(a.dropFirst().first ?? ""),
+      let gap = Double(a.dropFirst(2).first ?? "") else { exit(1) }
+let src = CGEventSource(stateID: .hidSystemState)
+for _ in 0..<many {
+    CGEvent(keyboardEventSource: src, virtualKey: CGKeyCode(code), keyDown: true)?.post(tap: .cghidEventTap)
+    Thread.sleep(forTimeInterval: 0.004)
+    CGEvent(keyboardEventSource: src, virtualKey: CGKeyCode(code), keyDown: false)?.post(tap: .cghidEventTap)
+    Thread.sleep(forTimeInterval: gap)
+}
+SWIFT
+  swift /tmp/blitzkit-tap.swift "$code" "$2" "$3" >/dev/null 2>&1 || true
+}
+
 hold() {
   local code
   code=$(key_code "$1")
@@ -218,6 +256,12 @@ play() {
         sleep 0.15
         hold "$(echo "$key" | cut -d: -f2)" "$(echo "$key" | cut -d: -f3)"
         ;;
+      tap:*)
+        front "$pid"
+        sleep 0.15
+        tap "$(echo "$key" | cut -d: -f2)" "$(echo "$key" | cut -d: -f3)" \
+          "$(echo "$key" | cut -d: -f4)"
+        ;;
       *)
         front "$pid"
         sleep 0.15
@@ -250,7 +294,7 @@ say "   $SCALE pixels to a point"
 made=0
 missed=0
 
-while IFS=$'\t' read -r name settle seconds keys; do
+while IFS=$'\t' read -r name settle seconds poster keys; do
   [ -n "$name" ] || continue
 
   if [ ${#wanted[@]} -gt 0 ]; then
@@ -342,11 +386,15 @@ while IFS=$'\t' read -r name settle seconds keys; do
     -an "$OUT/$name.mp4" -y >/dev/null 2>&1 </dev/null
   rm -f "$raw"
 
-  # and a still out of the middle of it, which is the poster the clip shows
-  # before it loads and the picture a readme can use. The middle rather than
-  # the first frame: the first frame of a thing that is about to happen is a
-  # picture of nothing happening, which is what the page already had.
-  ffmpeg -nostdin -hide_banner -loglevel error -ss "$(echo "$seconds" | awk '{print $1 * 0.6}')" \
+  # and a still out of the moment this one is about, which is the poster the
+  # clip shows before it loads and the picture a readme can use.
+  #
+  # Written down per example rather than taken at some fraction of the
+  # length. Six tenths of the way through chain is a floor covered in bricks
+  # with the ball swung back up out of frame, which is a picture of the
+  # aftermath and not of a wrecking ball. Not the first frame either, which
+  # for a thing about to happen is a picture of nothing happening.
+  ffmpeg -nostdin -hide_banner -loglevel error -ss "${poster:-1}" \
     -i "$OUT/$name.mp4" -vframes 1 "$OUT/$name.png" -y >/dev/null 2>&1 </dev/null
 
   say "   $OUT/$name.mp4 and $OUT/$name.png, $WIDE wide"

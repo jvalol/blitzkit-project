@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# Build the engine's examples for a browser, per spec 0053.
+#
+# The examples page shows a clip of each example. This is what makes the clip
+# a thing you can take hold of: the same example, built for wasm, loaded when
+# the reader asks for it and not before.
+#
+# Output goes to blitzkit/web, which is kept rather than ignored, the same way
+# blitzkit/media is. It is generated, and a browser cannot run `cargo`:
+# site/scripts/build copies it across and Netlify never sees a Rust toolchain.
+#
+# This machine's part is the toolchain, which is not in Cargo.toml and cannot
+# be: `rustup target add wasm32-unknown-unknown` and a `wasm-bindgen` whose
+# version matches the `wasm-bindgen` crate in the lock file exactly. A
+# mismatch is a page that loads and throws about an unknown import, which
+# reads like a code fault and is not one, so it is checked below rather than
+# left to be discovered.
+set -euo pipefail
+cd "$(dirname "$0")"
+
+OUT=blitzkit/web
+# Both of these are in the tree through other crates, and both refuse to build
+# for a browser until they are told where randomness comes from. The feature
+# is in blitzkit's Cargo.toml; this is the other half of the same answer.
+export RUSTFLAGS="${RUSTFLAGS:-} --cfg getrandom_backend=\"wasm_js\""
+
+say() { printf '%s\n' "$*"; }
+
+wanted=("$@")
+if [ ${#wanted[@]} -eq 0 ]; then
+  while read -r file; do
+    wanted+=("$(basename "$file" .rs)")
+  done < <(ls blitzkit/examples/*.rs)
+fi
+
+if ! rustup target list --installed | grep -qx wasm32-unknown-unknown; then
+  say "no wasm32-unknown-unknown target. rustup target add wasm32-unknown-unknown"
+  exit 1
+fi
+
+if ! command -v wasm-bindgen >/dev/null; then
+  say "no wasm-bindgen. cargo install wasm-bindgen-cli --version <the one in the lock file>"
+  exit 1
+fi
+
+# The tool and the crate have to be the same version, and a mismatch does not
+# say so: it comes out as the page throwing about an import nobody wrote.
+locked=$(awk '/^name = "wasm-bindgen"$/ {found=1; next} found && /^version = / {gsub(/"/, "", $3); print $3; exit}' blitzkit/Cargo.lock)
+tool=$(wasm-bindgen --version | awk '{print $2}')
+if [ -n "$locked" ] && [ "$locked" != "$tool" ]; then
+  say "wasm-bindgen is $tool and the lock file wants $locked."
+  say "cargo install wasm-bindgen-cli --version $locked"
+  exit 1
+fi
+
+mkdir -p "$OUT"
+
+made=0
+total=0
+
+for name in "${wanted[@]}"; do
+  [ -f "blitzkit/examples/$name.rs" ] || { say "== $name is not an example, skipped"; continue; }
+
+  say "== $name"
+  # this one's old build and not the whole directory. Clearing everything up
+  # front is right for a full run and wrong for the usual one: naming two
+  # examples deleted the other ten, which the gate then reported as ten builds
+  # nothing plays.
+  rm -f "$OUT/$name.js" "$OUT/${name}_bg.wasm"
+  (cd blitzkit && cargo build --release --target wasm32-unknown-unknown --example "$name" --quiet)
+
+  built=$(cd blitzkit && cargo metadata --format-version 1 --no-deps |
+    python3 -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')
+  wasm-bindgen --target web --no-typescript --out-dir "$OUT" \
+    "$built/wasm32-unknown-unknown/release/examples/$name.wasm"
+
+  size=$(stat -f%z "$OUT/${name}_bg.wasm")
+  small=$(gzip -9 -c "$OUT/${name}_bg.wasm" | wc -c | tr -d ' ')
+  say "   $(( size / 1024 )) KB, $(( small / 1024 )) KB gzipped"
+  made=$((made + 1))
+  total=$((total + size))
+done
+
+say ""
+say "$made built, $(( total / 1024 / 1024 )) MB in $OUT."
+say "wasm-opt would take more off and is not used here, because another tool"
+say "to install is another way for this to fail on a machine that has not got it."

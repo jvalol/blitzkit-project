@@ -17,6 +17,7 @@
 !/check-tunnel
 !/refresh-screenshots
 !/refresh-examples
+!/build-web
 !/release
 !/.cargo
 
