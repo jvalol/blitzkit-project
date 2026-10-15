@@ -1,0 +1,363 @@
+#!/usr/bin/env bash
+# Regenerate the clips and stills on the engine's examples page.
+#
+# Sibling of ./refresh-screenshots, which does the same job for the games. The
+# two are kept apart because the games are each their own repo and stage their
+# own shot through a --screenshot argument, while the examples are a dozen
+# binaries in one repo that take no arguments at all. What stages them is this
+# file: a line per example saying how long to let it settle, how long to film,
+# and which keys to press while the camera is running.
+#
+# That is the whole reason it exists. The examples page had stills from the
+# 28th of September on it on the 15th of October, and nothing anywhere could
+# take them again: they had been shot by hand, once each.
+#
+# **A still of a physics engine is the wrong picture.** Every example here
+# does something, and a dozen of them were being shown off by a photograph of
+# the moment after they had finished doing it. So each one is a short silent
+# clip that loops, with a still pulled out of the middle of it to stand in
+# until the clip loads and to be the picture a readme can use.
+#
+# macOS only on both counts: it photographs a real window, because nothing in
+# the engine renders to a file, and it films the whole screen and crops the
+# window out of it, because nothing here films one window. The windows are on
+# screen while this runs and the keys go to whatever is frontmost, so leave
+# the machine alone while it works.
+set -euo pipefail
+cd "$(dirname "$0")"
+
+WIDE=1200
+# How good a clip is, as x264 counts it. 22 is a quiet number for flat shaded
+# geometry on black and puts the whole page under two megabytes.
+QUALITY=${QUALITY:-22}
+RATE=${RATE:-30}
+# How much of the front of each recording is thrown away.
+#
+# The camera has to be running before the thing it is filming starts, so the
+# first seconds of every recording are whatever was on the screen behind it.
+# Two is the camera's own second to open plus a run's own to put a window up,
+# with a little to spare.
+PREROLL=${PREROLL:-2}
+
+# What to film, as: example, wait seconds, film seconds, keys.
+#
+# The wait is how long into the clip the keys start, not how long before the
+# camera opens: the camera is running before the example is, so the opening
+# is in every clip.
+#
+# The keys are what somebody would press while watching, sent once the camera
+# is running. A key is a letter, `space`, `click`, or an arrow as
+# `left`/`right`/`up`/`down`; `hold:<key>:<seconds>` holds one down; and a
+# number on its own is a wait in seconds.
+#
+# Digits are not in that list and cannot be. `1` and `2` pick cork or granite
+# in ripple and neither reaches the window, sent as `keystroke "2"` or as its
+# key code: it stays on cork through either. Letters, space and the arrows all
+# arrive, so it is the digits and not the mechanism, and ripple is filmed
+# dropping cork.
+#
+# Holding is its own verb because it has to be. rolling drives its ball with
+# the arrows held down, and a key sent through System Events is pressed and
+# released inside one frame, so the ball never moved: eight seconds of a ball
+# sitting still, in an example called rolling. A held key is a keyDown, a
+# wait and a keyUp posted through Quartz, which is what `hold` does.
+CLIPS=$(cat <<'LIST'
+rolling	2.5	9	hold:right:1.4 hold:up:1.2 hold:left:1.4 hold:down:1.2 o
+stacking	5	10	k
+tower	4.5	9	space
+cubes	0.5	8	3 l 3 l
+teapot	1	7	hold:right:2.5 hold:q:1.5
+teapot-glass	1	7	t 0.4 hold:right:2.5 hold:e:1.5
+klein	1	7	hold:right:3 hold:q:1.5
+klein-glass	1	7	m 0.3 t 0.4 hold:right:3
+tunnel	0.5	7
+sierpinski	1	7	1.5 up 2 up 2 down
+menger	1	7	1.5 up 2.5 down
+hilbert	1	7	1.5 up 2.5 down
+ripple	1	9	1 space 1.6 space 1.6 space 1.6 space
+chain	1.5	9	hold:left:2 3
+LIST
+)
+
+say() { printf '%s\n' "$*"; }
+
+# End a run, and mean it. The same two steps as ./refresh-screenshots: a
+# window that ignores a polite ask leaves `wait` blocking for ever.
+stop() {
+  kill "$1" 2>/dev/null || true
+
+  local waited=0
+  while kill -0 "$1" 2>/dev/null && [ "$waited" -lt 20 ]; do
+    sleep 0.1
+    waited=$((waited + 1))
+  done
+
+  kill -9 "$1" 2>/dev/null || true
+  wait "$1" 2>/dev/null || true
+}
+
+# Which window, and where it is in points, via CoreGraphics. There is no
+# shell for this.
+#
+# The examples call their windows "blitzkit: <name>", where the games call
+# theirs after the game, which is why this does not take
+# ./refresh-screenshots' function as it stands.
+window_box() {
+  cat > /tmp/blitzkit-example-window.swift <<'SWIFT'
+import CoreGraphics
+import Foundation
+let want = (CommandLine.arguments.dropFirst().first ?? "").lowercased()
+let on = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
+for w in on {
+    let name = w[kCGWindowName as String] as? String ?? ""
+    if name.lowercased() == want, let b = w[kCGWindowBounds as String] as? [String: Any] {
+        let id = w[kCGWindowNumber as String] as? Int ?? 0
+        let x = b["X"] as? Double ?? 0, y = b["Y"] as? Double ?? 0
+        let wd = b["Width"] as? Double ?? 0, ht = b["Height"] as? Double ?? 0
+        print("\(id) \(Int(x)) \(Int(y)) \(Int(wd)) \(Int(ht))")
+        break
+    }
+}
+SWIFT
+  swift /tmp/blitzkit-example-window.swift "$1"
+}
+
+# How many pixels there are to a point on the screen being filmed.
+#
+# Worked out rather than assumed, because a window's box comes back in points
+# and the film comes back in pixels. Taking one for the other crops a quarter
+# of the window on a retina screen.
+backing() {
+  local pixels points
+  pixels=$(system_profiler SPDisplaysDataType 2>/dev/null |
+    sed -n 's/.*Resolution: \([0-9]*\) x \([0-9]*\).*/\1/p' | head -1)
+  points=$(osascript -e 'tell application "Finder" to get bounds of window of desktop' |
+    awk -F', *' '{print $3}')
+
+  if [ -n "$pixels" ] && [ -n "$points" ] && [ "$points" -gt 0 ]; then
+    echo $((pixels / points))
+  else
+    echo 2
+  fi
+}
+
+front() {
+  osascript -e "tell application \"System Events\" to tell (first process whose unix id is $1) to set frontmost to true" >/dev/null 2>&1 || true
+}
+
+# What macOS calls each key this knows about. The numbers are where the keys
+# sit on the board and there is no arithmetic in them.
+key_code() {
+  case "$1" in
+    space) echo 49 ;;
+    left) echo 123 ;;
+    right) echo 124 ;;
+    down) echo 125 ;;
+    up) echo 126 ;;
+    a) echo 0 ;; s) echo 1 ;; d) echo 2 ;; f) echo 3 ;; h) echo 4 ;;
+    g) echo 5 ;; z) echo 6 ;; x) echo 7 ;; c) echo 8 ;; v) echo 9 ;;
+    b) echo 11 ;; q) echo 12 ;; w) echo 13 ;; e) echo 14 ;; r) echo 15 ;;
+    y) echo 16 ;; t) echo 17 ;; o) echo 31 ;; u) echo 32 ;; i) echo 34 ;;
+    p) echo 35 ;; l) echo 37 ;; j) echo 38 ;; k) echo 40 ;; n) echo 45 ;;
+    m) echo 46 ;;
+    *) echo "" ;;
+  esac
+}
+
+# Hold a key down, properly, through Quartz.
+#
+# System Events has no way to say it: its `key code` is a press and a release
+# with nothing in between, which is right for a key that does a thing and
+# wrong for a key that means keep doing this. See the note on the table.
+hold() {
+  local code
+  code=$(key_code "$1")
+  [ -n "$code" ] || { say "   no key code for $1"; return; }
+
+  cat > /tmp/blitzkit-hold.swift <<'SWIFT'
+import CoreGraphics
+import Foundation
+let args = CommandLine.arguments.dropFirst()
+guard let code = UInt16(args.first ?? ""), let secs = Double(args.dropFirst().first ?? "") else { exit(1) }
+let src = CGEventSource(stateID: .hidSystemState)
+CGEvent(keyboardEventSource: src, virtualKey: CGKeyCode(code), keyDown: true)?.post(tap: .cghidEventTap)
+Thread.sleep(forTimeInterval: secs)
+CGEvent(keyboardEventSource: src, virtualKey: CGKeyCode(code), keyDown: false)?.post(tap: .cghidEventTap)
+SWIFT
+  swift /tmp/blitzkit-hold.swift "$code" "$2" >/dev/null 2>&1 || true
+}
+
+press() {
+  case "$1" in
+    space) osascript -e 'tell application "System Events" to key code 49' >/dev/null 2>&1 || true ;;
+    left) osascript -e 'tell application "System Events" to key code 123' >/dev/null 2>&1 || true ;;
+    right) osascript -e 'tell application "System Events" to key code 124' >/dev/null 2>&1 || true ;;
+    down) osascript -e 'tell application "System Events" to key code 125' >/dev/null 2>&1 || true ;;
+    up) osascript -e 'tell application "System Events" to key code 126' >/dev/null 2>&1 || true ;;
+    click) osascript -e "tell application \"System Events\" to click at {$CLICK_AT}" >/dev/null 2>&1 || true ;;
+    *) osascript -e "tell application \"System Events\" to keystroke \"$1\"" >/dev/null 2>&1 || true ;;
+  esac
+}
+
+# Press a run's keys on its own clock, while the camera is running.
+#
+# Fronted before every key and not once before the lot. Once was enough on a
+# quiet machine and not on a busy one: a run came out with one ball in the
+# pool instead of four and its title bar grey in the picture, because the
+# window had stopped being frontmost partway and the rest of the keys went
+# somewhere else.
+play() {
+  local pid=$1
+  shift
+
+  for key in "$@"; do
+    case "$key" in
+      [0-9]*) sleep "$key" ;;
+      hold:*)
+        front "$pid"
+        sleep 0.15
+        hold "$(echo "$key" | cut -d: -f2)" "$(echo "$key" | cut -d: -f3)"
+        ;;
+      *)
+        front "$pid"
+        sleep 0.15
+        press "$key"
+        sleep 0.15
+        ;;
+    esac
+  done
+}
+
+wanted=("$@")
+
+say "== building the examples"
+(cd blitzkit && cargo build --release --examples --quiet)
+
+# Where cargo put them, asked rather than assumed. The repos here share one
+# target directory at the project root, so blitzkit/target does not exist and
+# looking for the binaries there finds nothing.
+TARGET=$(cd blitzkit && cargo metadata --format-version 1 --no-deps |
+  python3 -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')/release
+
+# media/ at the engine's root and not site/static/media, which is a copy
+# site/scripts/build takes at build time and git ignores. Writing to the copy
+# is writing to something the next build overwrites, which is where the first
+# version of this put fourteen pictures.
+OUT=blitzkit/media
+SCALE=$(backing)
+say "   $SCALE pixels to a point"
+
+made=0
+missed=0
+
+while IFS=$'\t' read -r name settle seconds keys; do
+  [ -n "$name" ] || continue
+
+  if [ ${#wanted[@]} -gt 0 ]; then
+    found=0
+    for one in "${wanted[@]}"; do
+      [ "$one" = "$name" ] && found=1
+    done
+    [ "$found" = 1 ] || continue
+  fi
+
+  say "== $name"
+
+  # The example to run, which is not always what the file is called: teapot
+  # and teapot-glass are the same binary filmed in its two states, which is
+  # what the page has always shown and what the readme still shows as two
+  # stills.
+  runs=${name%-glass}
+
+  # Opened once to find out where its window lands, then closed, because the
+  # camera has to be running before the thing it is filming starts.
+  #
+  # **The opening is the shot.** Filmed the other way round, with the window
+  # up and the camera opening a second later, three of these came out as
+  # photographs with a soundtrack: rolling settled before the first frame and
+  # changed by 85 decibels of nothing across four seconds, and stacking and
+  # tower were not much better. What a tower of forty blocks does is fall
+  # into place, and that had been happening off camera every time.
+  #
+  # The window goes back where it was, because winit puts it there: these all
+  # ask for the same size and get the same place. Checked rather than hoped,
+  # and a run whose window moves says so.
+  "$TARGET/examples/$runs" >/dev/null 2>&1 </dev/null &
+  finding=$!
+  sleep 1.5
+  read -r id x y w h <<< "$(window_box "blitzkit: $runs" || true)"
+  stop "$finding"
+
+  if [ -z "${id:-}" ]; then
+    say "   no window called 'blitzkit: $runs' came up"
+    missed=$((missed + 1))
+    continue
+  fi
+
+  CLICK_AT="$((x + w / 2)), $((y + h / 2))"
+
+  # -nostdin, and every child gets /dev/null besides. The table this loop is
+  # reading comes in on stdin, and ffmpeg reads stdin for keyboard commands:
+  # it ate the rest of the list, so the run went from the first example
+  # straight to a line that began "7" and died on it.
+  # recorded fast and rough, then cut and encoded properly. One pass cannot
+  # do it: the front of the recording is the desktop behind the window, and
+  # trimming that off a file still being written is not a thing.
+  raw=$(mktemp -t "$name").mp4
+  ffmpeg -nostdin -hide_banner -loglevel error -f avfoundation -capture_cursor 0 \
+    -framerate "$RATE" -i "3" -t "$((seconds + PREROLL))" \
+    -vf "crop=$((w * SCALE)):$((h * SCALE)):$((x * SCALE)):$((y * SCALE)),scale=$WIDE:-2" \
+    -c:v libx264 -preset ultrafast -crf 16 -pix_fmt yuv420p \
+    "$raw" -y >/dev/null 2>&1 </dev/null &
+  filming=$!
+
+  # the camera takes about a second to open, and the run starts once it has
+  sleep 1.2
+  "$TARGET/examples/$runs" >/dev/null 2>&1 </dev/null &
+  running=$!
+  sleep 0.8
+
+  read -r again rx ry _ _ <<< "$(window_box "blitzkit: $runs" || true)"
+  if [ -n "${again:-}" ] && { [ "$rx" != "$x" ] || [ "$ry" != "$y" ]; }; then
+    say "   its window came back at $rx $ry rather than $x $y, so the crop is off"
+  fi
+
+  front "$running"
+  sleep "$settle"
+  # shellcheck disable=SC2086
+  [ -n "${keys:-}" ] && play "$running" $keys
+
+  wait "$filming" 2>/dev/null || true
+  stop "$running"
+
+  if [ ! -s "$raw" ]; then
+    say "   nothing came out of the camera"
+    rm -f "$raw"
+    missed=$((missed + 1))
+    continue
+  fi
+
+  ffmpeg -nostdin -hide_banner -loglevel error -ss "$PREROLL" -i "$raw" \
+    -c:v libx264 -preset slow -crf "$QUALITY" -pix_fmt yuv420p -movflags +faststart \
+    -an "$OUT/$name.mp4" -y >/dev/null 2>&1 </dev/null
+  rm -f "$raw"
+
+  # and a still out of the middle of it, which is the poster the clip shows
+  # before it loads and the picture a readme can use. The middle rather than
+  # the first frame: the first frame of a thing that is about to happen is a
+  # picture of nothing happening, which is what the page already had.
+  ffmpeg -nostdin -hide_banner -loglevel error -ss "$(echo "$seconds" | awk '{print $1 * 0.6}')" \
+    -i "$OUT/$name.mp4" -vframes 1 "$OUT/$name.png" -y >/dev/null 2>&1 </dev/null
+
+  say "   $OUT/$name.mp4 and $OUT/$name.png, $WIDE wide"
+  made=$((made + 1))
+done <<< "$CLIPS"
+
+say ""
+if [ "$missed" -gt 0 ]; then
+  say "$made made, $missed missed."
+else
+  say "$made made."
+fi
+say "Watch them before committing. A staged clip can stage the wrong thing,"
+say "and the keys go to whatever is frontmost, which is not always the window."

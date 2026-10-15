@@ -147,8 +147,8 @@ done
 # image on a published page.
 #
 # Only the ones served out of a repo, which is what `raw.githubusercontent`
-# marks. The engine's own example pictures are built into the site and come
-# off its own /media, so they are a different question and not this one.
+# marks. The engine's own example media comes off its own /media and is
+# asked about separately, below.
 echo "== pictures"
 docs=(blitzkit/site/content/docs/*.md)
 while read -r path; do
@@ -173,6 +173,49 @@ while read -r path; do
     fi
   done
 done < <(./list-repos all)
+
+# and the engine's own, which nothing asked about until the examples page was
+# found carrying stills from a fortnight before.
+#
+# The same question from both ends: every clip and poster the page names has
+# to be in media/, and every file in media/ has to be named by the page or by
+# a readme. Which matters because they are not the same set. The page shows
+# clips with stills as posters; the readmes show the stills on their own,
+# because a readme on GitHub cannot play a video off a raw link.
+#
+# media/ at the engine's root is the kept copy. site/static/media is one
+# site/scripts/build takes at build time and git ignores, so a picture put
+# there is a picture the next build overwrites.
+echo "== the engine's own media"
+engine=blitzkit
+# Two spellings, and only these two. The site serves its own media off the
+# root of the site, so there it is `(/media/x.png)` or `src="/media/x.mp4"`;
+# the engine's readme is read on GitHub, so there it is the raw link. A bare
+# search for /media/ catches the games' raw links as well and reports every
+# picture in the arcade as missing from the engine, which is what the first
+# version of this did.
+named=$( {
+  grep -ho '[("]/media/[A-Za-z0-9._-]*' "$engine"/site/content/docs/*.md 2>/dev/null |
+    sed 's|.*/media/||'
+  grep -ho "jvalol/$engine/main/media/[A-Za-z0-9._-]*" "$engine"/README.md ./README.md 2>/dev/null |
+    sed 's|.*/media/||'
+} | sort -u)
+
+while read -r file; do
+  [ -n "$file" ] || continue
+  if [ ! -f "$engine/media/$file" ]; then
+    echo "  the site or a readme shows $file, which is not in $engine/media"
+    missing=$((missing + 1))
+  fi
+done <<< "$named"
+
+for file in "$engine"/media/*; do
+  [ -f "$file" ] || continue
+  if ! printf '%s\n' "$named" | grep -qxF "$(basename "$file")"; then
+    echo "  nothing shows $engine/media/$(basename "$file")"
+    missing=$((missing + 1))
+  fi
+done
 
 if [ "$missing" -eq 0 ]; then
   echo "every example and every game is written about everywhere it should be"
