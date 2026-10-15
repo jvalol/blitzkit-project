@@ -73,6 +73,64 @@ while read -r repo; do
   fi
 done < <(./list-repos games)
 
+# Every key an example binds, said on the page that teaches that example.
+#
+# The checks above ask whether a thing is mentioned at all. This asks a
+# narrower question about the one page that is a manual: an example that binds
+# a key nobody is told about has a feature nobody will find. `rolling` bound O
+# to outline what is solid on 2026-10-10 and the page did not say so until
+# today, with the gate green throughout, because nothing here read controls.
+#
+# Still not how it is written, only whether the key appears. Two conventions
+# the page writes as words rather than as keys are expanded first, because
+# "WASD" and "the arrows" are how anybody would write them and spelling them
+# out would be worse prose.
+#
+# An example may also point at another: "same controls as the teapot, plus M"
+# is honest and reads better than repeating six lines, so a section that names
+# another example is read together with that example's section.
+echo "== controls"
+manual=blitzkit/site/content/docs/examples.md
+
+section() {
+  awk -v want="## $2" '
+    $0 == want { inside = 1; next }
+    inside && /^## / { exit }
+    inside { print }
+  ' "$1"
+}
+
+names=$(for file in blitzkit/examples/*.rs; do basename "$file" .rs; done)
+
+for file in blitzkit/examples/*.rs; do
+  [ -e "$file" ] || continue
+  name=$(basename "$file" .rs)
+  said=$(section "$manual" "$name")
+
+  for other in $names; do
+    [ "$other" = "$name" ] && continue
+    if printf '%s' "$said" | grep -qE "(^|[^a-zA-Z0-9_-])$other([^a-zA-Z0-9_-]|$)"; then
+      said="$said
+$(section "$manual" "$other")"
+    fi
+  done
+
+  case "$said" in *WASD*) said="$said W A S D" ;; esac
+  case "$said" in *arrow*) said="$said up down left right" ;; esac
+
+  for key in $(grep -oE 'Key::[A-Za-z0-9]+' "$file" | sed 's/^Key:://' | sort -u); do
+    # escape quits every one of them and is said once, at the top
+    [ "$key" = "Escape" ] && continue
+    # Key1 is the 1 key, and the page calls it 1
+    word=${key#Key}
+
+    if ! printf '%s' "$said" | grep -qiE "(^|[^a-zA-Z0-9_-])$word([^a-zA-Z0-9_-]|$)"; then
+      echo "  $manual never says what $word does in $name"
+      missing=$((missing + 1))
+    fi
+  done
+done
+
 # Every picture the site pulls out of a repo, both ways round.
 #
 # The games loop above is about games, and the arcade is deliberately not one:
