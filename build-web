@@ -3,7 +3,8 @@
 #
 # The examples page shows a clip of each example. This is what makes the clip
 # a thing you can take hold of: the same example, built for wasm, loaded when
-# the reader asks for it and not before.
+# the reader asks for it and not before. The arcade goes through here too,
+# which is a whole building rather than an example and ten times the size.
 #
 # Output goes to blitzkit/web, which is kept rather than ignored, the same way
 # blitzkit/media is. It is generated, and a browser cannot run `cargo`:
@@ -26,11 +27,23 @@ export RUSTFLAGS="${RUSTFLAGS:-} --cfg getrandom_backend=\"wasm_js\""
 
 say() { printf '%s\n' "$*"; }
 
+# What each name is: which crate it lives in and what cargo calls it there.
+#
+# The arcade is not an example and not in this engine's repo, so it is named
+# here rather than found. Everything else is a file under blitzkit/examples.
+where_is() {
+  case "$1" in
+    arcade) echo "arcade bin" ;;
+    *) echo "blitzkit example" ;;
+  esac
+}
+
 wanted=("$@")
 if [ ${#wanted[@]} -eq 0 ]; then
   while read -r file; do
     wanted+=("$(basename "$file" .rs)")
   done < <(ls blitzkit/examples/*.rs)
+  wanted+=(arcade)
 fi
 
 if ! rustup target list --installed | grep -qx wasm32-unknown-unknown; then
@@ -59,7 +72,12 @@ made=0
 total=0
 
 for name in "${wanted[@]}"; do
-  [ -f "blitzkit/examples/$name.rs" ] || { say "== $name is not an example, skipped"; continue; }
+  read -r repo kind <<< "$(where_is "$name")"
+
+  if [ "$kind" = example ] && [ ! -f "blitzkit/examples/$name.rs" ]; then
+    say "== $name is not an example, skipped"
+    continue
+  fi
 
   say "== $name"
   # this one's old build and not the whole directory. Clearing everything up
@@ -67,12 +85,19 @@ for name in "${wanted[@]}"; do
   # examples deleted the other ten, which the gate then reported as ten builds
   # nothing plays.
   rm -f "$OUT/$name.js" "$OUT/${name}_bg.wasm"
-  (cd blitzkit && cargo build --release --target wasm32-unknown-unknown --example "$name" --quiet)
 
-  built=$(cd blitzkit && cargo metadata --format-version 1 --no-deps |
+  if [ "$kind" = example ]; then
+    (cd "$repo" && cargo build --release --target wasm32-unknown-unknown --example "$name" --quiet)
+    from=examples
+  else
+    (cd "$repo" && cargo build --release --target wasm32-unknown-unknown --quiet)
+    from=.
+  fi
+
+  built=$(cd "$repo" && cargo metadata --format-version 1 --no-deps |
     python3 -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')
   wasm-bindgen --target web --no-typescript --out-dir "$OUT" \
-    "$built/wasm32-unknown-unknown/release/examples/$name.wasm"
+    "$built/wasm32-unknown-unknown/release/$from/$name.wasm"
 
   size=$(stat -f%z "$OUT/${name}_bg.wasm")
   small=$(gzip -9 -c "$OUT/${name}_bg.wasm" | wc -c | tr -d ' ')
@@ -82,6 +107,9 @@ for name in "${wanted[@]}"; do
 done
 
 say ""
-say "$made built, $(( total / 1024 / 1024 )) MB in $OUT."
+# what this run built, and then what is sitting in there altogether, which
+# are different numbers whenever a run names anything
+say "$made built, $(( total / 1024 / 1024 )) MB of it."
+say "$OUT holds $(du -sm "$OUT" | cut -f1) MB now."
 say "wasm-opt would take more off and is not used here, because another tool"
 say "to install is another way for this to fail on a machine that has not got it."
