@@ -47,10 +47,11 @@ PREROLL=${PREROLL:-2}
 # is in every clip.
 #
 # The keys are what somebody would press while watching, sent once the camera
-# is running. A key is a letter, `space`, `click`, or an arrow as
+# is running. A key is a letter, `space`, or an arrow as
 # `left`/`right`/`up`/`down`; `hold:<key>:<seconds>` holds one down;
-# `tap:<key>:<many>:<gap>` hits it over and over; and a number on its own is a
-# wait in seconds.
+# `tap:<key>:<many>:<gap>` hits it over and over;
+# `shove:<across>:<down>:<held>` presses the mouse at that fraction of the
+# window for that long; and a number on its own is a wait in seconds.
 #
 # Digits are not in that list and cannot be. `1` and `2` pick cork or granite
 # in ripple and neither reaches the window, sent as `keystroke "2"` or as its
@@ -75,9 +76,9 @@ PREROLL=${PREROLL:-2}
 # leave 11 of 39 standing and stretch the chain 3.0 per cent against 1.5.
 CLIPS=$(cat <<'LIST'
 rolling	2.5	9	5	hold:right:1.4 hold:up:1.2 hold:left:1.4 hold:down:1.2 o
-stacking	5	10	6.5	k
-tower	4.5	9	6	space
-cubes	0.5	8	5	3 l 3 l
+stacking	5	11	6	shove:0.66:0.58:1.4 2 shove:0.26:0.44:1.2 2.5 k
+tower	4.5	11	7	shove:0.5:0.62 0.6 shove:0.5:0.58 0.6 shove:0.5:0.66 0.6 shove:0.5:0.54
+cubes	0.5	10	6	1 l 2.5 l 2.5 l
 teapot	1	7	4	hold:right:2.5 hold:q:1.5
 teapot-glass	1	7	5	t 0.4 hold:right:2.5 hold:e:1.5
 klein	1	7	4	hold:right:3 hold:q:1.5
@@ -207,6 +208,39 @@ SWIFT
   swift /tmp/blitzkit-tap.swift "$code" "$2" "$3" >/dev/null 2>&1 || true
 }
 
+# Click the window, at a fraction of the way across and down it.
+#
+# Through Quartz, like the keys, and for the same reason: System Events'
+# `click at` reaches these windows as nothing. tower is forty blocks you
+# knock a brick out of to watch fall, and it was filmed standing there for
+# nine seconds, which Jake read off the page as demonstrating nothing.
+#
+# A fraction and not a point, because the window is wherever it opened. The
+# third number is how long the button is held, which is a click left out and
+# a wind up in stacking: hold on a sphere to wind it, let go to shove it.
+shove() {
+  local across=$1 down=$2 held=${3:-0.06}
+  local at_x at_y
+  at_x=$(awk -v x="$WIN_X" -v w="$WIN_W" -v f="$across" 'BEGIN{printf "%d", x + w * f}')
+  at_y=$(awk -v y="$WIN_Y" -v h="$WIN_H" -v f="$down" 'BEGIN{printf "%d", y + h * f}')
+
+  cat > /tmp/blitzkit-shove.swift <<'SWIFT'
+import CoreGraphics
+import Foundation
+let a = CommandLine.arguments.dropFirst()
+guard let x = Double(a.first ?? ""), let y = Double(a.dropFirst().first ?? ""),
+      let held = Double(a.dropFirst(2).first ?? "") else { exit(1) }
+let at = CGPoint(x: x, y: y)
+let src = CGEventSource(stateID: .hidSystemState)
+CGEvent(mouseEventSource: src, mouseType: .mouseMoved, mouseCursorPosition: at, mouseButton: .left)?.post(tap: .cghidEventTap)
+Thread.sleep(forTimeInterval: 0.08)
+CGEvent(mouseEventSource: src, mouseType: .leftMouseDown, mouseCursorPosition: at, mouseButton: .left)?.post(tap: .cghidEventTap)
+Thread.sleep(forTimeInterval: held)
+CGEvent(mouseEventSource: src, mouseType: .leftMouseUp, mouseCursorPosition: at, mouseButton: .left)?.post(tap: .cghidEventTap)
+SWIFT
+  swift /tmp/blitzkit-shove.swift "$at_x" "$at_y" "$held" >/dev/null 2>&1 || true
+}
+
 hold() {
   local code
   code=$(key_code "$1")
@@ -232,7 +266,6 @@ press() {
     right) osascript -e 'tell application "System Events" to key code 124' >/dev/null 2>&1 || true ;;
     down) osascript -e 'tell application "System Events" to key code 125' >/dev/null 2>&1 || true ;;
     up) osascript -e 'tell application "System Events" to key code 126' >/dev/null 2>&1 || true ;;
-    click) osascript -e "tell application \"System Events\" to click at {$CLICK_AT}" >/dev/null 2>&1 || true ;;
     *) osascript -e "tell application \"System Events\" to keystroke \"$1\"" >/dev/null 2>&1 || true ;;
   esac
 }
@@ -261,6 +294,13 @@ play() {
         sleep 0.15
         tap "$(echo "$key" | cut -d: -f2)" "$(echo "$key" | cut -d: -f3)" \
           "$(echo "$key" | cut -d: -f4)"
+        ;;
+      shove:*)
+        front "$pid"
+        sleep 0.15
+        shove "$(echo "$key" | cut -d: -f2)" "$(echo "$key" | cut -d: -f3)" \
+          "$(echo "$key" | cut -d: -f4)"
+        sleep 0.2
         ;;
       *)
         front "$pid"
@@ -338,7 +378,10 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
     continue
   fi
 
-  CLICK_AT="$((x + w / 2)), $((y + h / 2))"
+  WIN_X=$x
+  WIN_Y=$y
+  WIN_W=$w
+  WIN_H=$h
 
   # -nostdin, and every child gets /dev/null besides. The table this loop is
   # reading comes in on stdin, and ffmpeg reads stdin for keyboard commands:
