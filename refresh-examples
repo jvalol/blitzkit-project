@@ -89,6 +89,7 @@ menger	1	7	5	1.5 up 2.5 down
 hilbert	1	7	5	1.5 up 2.5 down
 ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
 chain	1.5	8	3.4	1 tap:right:20:0.035 3
+arcade	3	12	4	hold:w:2.6 hold:right:0.45 hold:w:1.3 hold:left:0.9 hold:w:1.3 hold:right:0.45 hold:w:0.6 hold:left:1.4
 LIST
 )
 
@@ -316,12 +317,14 @@ wanted=("$@")
 
 say "== building the examples"
 (cd blitzkit && cargo build --release --examples --quiet)
+(cd arcade && cargo build --release --quiet)
 
 # Where cargo put them, asked rather than assumed. The repos here share one
 # target directory at the project root, so blitzkit/target does not exist and
 # looking for the binaries there finds nothing.
 TARGET=$(cd blitzkit && cargo metadata --format-version 1 --no-deps |
   python3 -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')/release
+ARCADE=$TARGET/arcade
 
 # media/ at the engine's root and not site/static/media, which is a copy
 # site/scripts/build takes at build time and git ignores. Writing to the copy
@@ -353,6 +356,17 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # stills.
   runs=${name%-glass}
 
+  # and where it lives. The arcade is a binary in its own repo rather than an
+  # example in the engine's, and it is on the site like the examples are, so
+  # it is filmed like them.
+  if [ "$runs" = arcade ]; then
+    binary=$ARCADE
+    titled="arcade"
+  else
+    binary="$TARGET/examples/$runs"
+    titled="blitzkit: $runs"
+  fi
+
   # Opened once to find out where its window lands, then closed, because the
   # camera has to be running before the thing it is filming starts.
   #
@@ -366,14 +380,14 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # The window goes back where it was, because winit puts it there: these all
   # ask for the same size and get the same place. Checked rather than hoped,
   # and a run whose window moves says so.
-  "$TARGET/examples/$runs" >/dev/null 2>&1 </dev/null &
+  "$binary" >/dev/null 2>&1 </dev/null &
   finding=$!
   sleep 1.5
-  read -r id x y w h <<< "$(window_box "blitzkit: $runs" || true)"
+  read -r id x y w h <<< "$(window_box "$titled" || true)"
   stop "$finding"
 
   if [ -z "${id:-}" ]; then
-    say "   no window called 'blitzkit: $runs' came up"
+    say "   no window called '$titled' came up"
     missed=$((missed + 1))
     continue
   fi
@@ -400,11 +414,11 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
 
   # the camera takes about a second to open, and the run starts once it has
   sleep 1.2
-  "$TARGET/examples/$runs" >/dev/null 2>&1 </dev/null &
+  "$binary" >/dev/null 2>&1 </dev/null &
   running=$!
   sleep 0.8
 
-  read -r again rx ry _ _ <<< "$(window_box "blitzkit: $runs" || true)"
+  read -r again rx ry _ _ <<< "$(window_box "$titled" || true)"
   if [ -n "${again:-}" ] && { [ "$rx" != "$x" ] || [ "$ry" != "$y" ]; }; then
     say "   its window came back at $rx $ry rather than $x $y, so the crop is off"
   fi
