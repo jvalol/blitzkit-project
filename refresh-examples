@@ -42,6 +42,12 @@ PREROLL=${PREROLL:-2}
 # What to film, as: example, wait seconds, film seconds, poster seconds,
 # keys.
 #
+# tower is not here, and that is a decision rather than an oversight. It went
+# on 2026-10-16 because cairn is the better example of the same thing: four
+# blocks to a level against two, grained wood against one flat colour, and a
+# tower that comes apart because taking it apart is the game. It came off the
+# page, and then out of the engine altogether. See blitzkit spec 0054.
+#
 # The wait is how long into the clip the keys start, not how long before the
 # camera opens: the camera is running before the example is, so the opening
 # is in every clip.
@@ -51,7 +57,8 @@ PREROLL=${PREROLL:-2}
 # `left`/`right`/`up`/`down`; `hold:<key>:<seconds>` holds one down;
 # `tap:<key>:<many>:<gap>` hits it over and over;
 # `shove:<across>:<down>:<held>` presses the mouse at that fraction of the
-# window for that long; and a number on its own is a wait in seconds.
+# window for that long; `zoom:<ticks>` turns the wheel over the middle of it;
+# and a number on its own is a wait in seconds.
 #
 # Digits are not in that list and cannot be. `1` and `2` pick cork or granite
 # in ripple and neither reaches the window, sent as `keystroke "2"` or as its
@@ -76,8 +83,7 @@ PREROLL=${PREROLL:-2}
 # leave 11 of 39 standing and stretch the chain 3.0 per cent against 1.5.
 CLIPS=$(cat <<'LIST'
 rolling	2.5	9	5	hold:right:1.4 hold:up:1.2 hold:left:1.4 hold:down:1.2 o
-stacking	5	11	6	shove:0.66:0.58:1.4 2 shove:0.26:0.44:1.2 2.5 k
-tower	4.5	11	7	shove:0.5:0.62 0.6 shove:0.5:0.58 0.6 shove:0.5:0.66 0.6 shove:0.5:0.54
+stacking	4	13	7	shove:0.66:0.58:1.9 2.6 shove:0.26:0.43:1.9 2.6 k
 cubes	0.5	10	6	1 l 2.5 l 2.5 l
 teapot	1	7	4	hold:right:2.5 hold:q:1.5
 teapot-glass	1	7	5	t 0.4 hold:right:2.5 hold:e:1.5
@@ -242,6 +248,38 @@ SWIFT
   swift /tmp/blitzkit-shove.swift "$at_x" "$at_y" "$held" >/dev/null 2>&1 || true
 }
 
+# Turn the wheel over the middle of the window.
+#
+# Most of these put the thing they are about in the middle of the frame and a
+# long way off, with the rest of the window black. A camera that moves is the
+# example's own control and costs nothing to use.
+wheel() {
+  local ticks=$1
+  local at_x at_y
+  at_x=$(awk -v x="$WIN_X" -v w="$WIN_W" 'BEGIN{printf "%d", x + w * 0.5}')
+  at_y=$(awk -v y="$WIN_Y" -v h="$WIN_H" 'BEGIN{printf "%d", y + h * 0.5}')
+
+  cat > /tmp/blitzkit-wheel.swift <<'SWIFT'
+import CoreGraphics
+import Foundation
+let a = CommandLine.arguments.dropFirst()
+guard let x = Double(a.first ?? ""), let y = Double(a.dropFirst().first ?? ""),
+      let ticks = Int(a.dropFirst(2).first ?? "") else { exit(1) }
+let at = CGPoint(x: x, y: y)
+let src = CGEventSource(stateID: .hidSystemState)
+CGEvent(mouseEventSource: src, mouseType: .mouseMoved, mouseCursorPosition: at, mouseButton: .left)?.post(tap: .cghidEventTap)
+Thread.sleep(forTimeInterval: 0.05)
+for _ in 0..<abs(ticks) {
+    let e = CGEvent(scrollWheelEvent2Source: src, units: .line, wheelCount: 1,
+                    wheel1: Int32(ticks > 0 ? 1 : -1), wheel2: 0, wheel3: 0)
+    e?.location = at
+    e?.post(tap: .cghidEventTap)
+    Thread.sleep(forTimeInterval: 0.03)
+}
+SWIFT
+  swift /tmp/blitzkit-wheel.swift "$at_x" "$at_y" "$ticks" >/dev/null 2>&1 || true
+}
+
 hold() {
   local code
   code=$(key_code "$1")
@@ -295,6 +333,12 @@ play() {
         sleep 0.15
         tap "$(echo "$key" | cut -d: -f2)" "$(echo "$key" | cut -d: -f3)" \
           "$(echo "$key" | cut -d: -f4)"
+        ;;
+      zoom:*)
+        front "$pid"
+        sleep 0.15
+        wheel "$(echo "$key" | cut -d: -f2)"
+        sleep 0.2
         ;;
       shove:*)
         front "$pid"

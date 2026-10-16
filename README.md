@@ -128,7 +128,6 @@ Play with a ball on a chain.
 cargo run --release --example cubes
 cargo run --release --example rolling
 cargo run --release --example stacking
-cargo run --release --example tower
 cargo run --release --example sierpinski
 cargo run --release --example menger
 cargo run --release --example hilbert

@@ -38,12 +38,19 @@ where_is() {
   esac
 }
 
+# What to build, taken from what the site offers to play rather than from what
+# is in blitzkit/examples.
+#
+# One account of it. An example the page does not show is a build nobody can
+# reach, and ./check-listings reports it as nineteen megabytes nobody plays:
+# that is what happened the day tower was dropped from the page and this still
+# read the directory.
 wanted=("$@")
 if [ ${#wanted[@]} -eq 0 ]; then
-  while read -r file; do
-    wanted+=("$(basename "$file" .rs)")
-  done < <(ls blitzkit/examples/*.rs)
-  wanted+=(arcade)
+  while read -r name; do
+    [ -n "$name" ] && wanted+=("$name")
+  done < <(grep -ho 'play name="[A-Za-z0-9._-]*"' blitzkit/site/content/docs/*.md |
+    sed 's|play name="||; s|"||' | sort -u)
 fi
 
 if ! rustup target list --installed | grep -qx wasm32-unknown-unknown; then
