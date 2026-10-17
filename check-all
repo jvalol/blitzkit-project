@@ -12,6 +12,17 @@ cd "$(dirname "$0")" || exit 1
 # The list comes from ./list-repos rather than an array here, so cloning a game
 # beside the engine is the whole of adding it. It used to be an array, and the
 # copy in check-specs drifted from this one.
+
+# **How many rustc at once.** Cargo's default is one per core, which on this
+# machine is eighteen, and eighteen linking at once is what has filled its
+# memory more than once during a full gate. Sixteen crates go through here one
+# after another and each of them builds four ways, so what this costs in
+# wall clock is small and what it saves is the machine going under while it
+# runs unattended.
+#
+# Overridable, because the number is this machine's and the script is not.
+export CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS:-4}
+
 repos=()
 while read -r repo; do repos+=("$repo"); done < <(./list-repos)
 failed=()
