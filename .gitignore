@@ -18,6 +18,8 @@
 !/refresh-screenshots
 !/refresh-examples
 !/build-web
+!/stamp
+!/check-fresh
 !/release
 !/.cargo
 

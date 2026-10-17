@@ -106,6 +106,10 @@ for name in "${wanted[@]}"; do
   wasm-bindgen --target web --no-typescript --out-dir "$OUT" \
     "$built/wasm32-unknown-unknown/release/$from/$name.wasm"
 
+  # written down as it is made, so ./check-fresh can say how far behind the
+  # engine this build is without anybody having to remember
+  ./stamp "$OUT/MADE" "$name.js" "${name}_bg.wasm"
+
   size=$(stat -f%z "$OUT/${name}_bg.wasm")
   small=$(gzip -9 -c "$OUT/${name}_bg.wasm" | wc -c | tr -d ' ')
   say "   $(( size / 1024 )) KB, $(( small / 1024 )) KB gzipped"

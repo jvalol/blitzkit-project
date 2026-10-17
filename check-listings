@@ -211,6 +211,9 @@ done <<< "$named"
 
 for file in "$engine"/media/*; do
   [ -f "$file" ] || continue
+  # MADE is the note saying what these were made from, not a picture. See
+  # ./stamp and ./check-fresh.
+  [ "$(basename "$file")" = MADE ] && continue
   if ! printf '%s\n' "$named" | grep -qxF "$(basename "$file")"; then
     echo "  nothing shows $engine/media/$(basename "$file")"
     missing=$((missing + 1))
@@ -239,6 +242,7 @@ done <<< "$played"
 
 for file in "$engine"/web/*; do
   [ -f "$file" ] || continue
+  [ "$(basename "$file")" = MADE ] && continue
   name=$(basename "$file")
   name=${name%.js}
   name=${name%_bg.wasm}

@@ -72,6 +72,14 @@ fi
 # Every example and every game is written about in three places, and adding one
 # means remembering all three. Nothing in a cargo run reads prose, so a new
 # example was listed nowhere and everything still passed.
+echo "== how far behind the engine the derived things are"
+# a report rather than a gate. What a clip is made from is the whole engine,
+# so any commit to blitzkit/src could have changed every one of them and
+# almost never does; a check that fails on every engine commit is a check
+# nobody reads. blitzkit/scripts/pre-push is the one that refuses, and only
+# about the browser builds, because pushing blitzkit publishes the site.
+./check-fresh
+
 echo "== listings"
 if ! ./check-listings; then
   failed+=("something went unmentioned")

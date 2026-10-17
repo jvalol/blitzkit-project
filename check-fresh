@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# How far behind the engine each derived thing is.
+#
+# A report and not a gate, on purpose. What the clips and the stills are made
+# from is the whole engine, so any commit to blitzkit/src is a commit that
+# could have changed all of them and almost never does. A check that fails
+# every time the engine changes is a check nobody reads.
+#
+# The browser builds are different and ./blitzkit/scripts/pre-push does treat
+# them as a gate, because pushing blitzkit publishes the site and a stale
+# build there is a room that is simply missing.
+#
+# Exits nonzero only if asked to with --strict, which the hook uses.
+
+set -uo pipefail
+
+strict=0
+[ "${1:-}" = --strict ] && strict=1
+
+behind=0
+unwritten=0
+
+# how many commits since a given one have touched what this thing is made
+# from: the engine itself, and its own example if it has one.
+#
+# **Its own and not every example.** Counting commits to all of examples/
+# meant that deleting tower marked teapot two commits behind, and rebuilding
+# teapot then produced byte identical output. A counter that counts changes to
+# other people's files is the false alarm this was written to avoid.
+since() {
+  local was=${1%+} name=$2
+  [ "$was" = unknown ] && { echo "?"; return; }
+
+  local mine=(src)
+  [ -f "blitzkit/examples/$name.rs" ] && mine+=("examples/$name.rs")
+
+  git -C blitzkit rev-list --count "$was"..HEAD -- "${mine[@]}" 2>/dev/null || echo "?"
+}
+
+look() {
+  local manifest=$1 what=$2 dir
+  dir=$(dirname "$manifest")
+
+  echo "== $what"
+
+  if [ ! -f "$manifest" ]; then
+    echo "   nothing has been written down yet, so nothing can be said"
+    unwritten=$((unwritten + 1))
+    return
+  fi
+
+  # grouped by name rather than by file. A clip and its still are one
+  # thing, and so are a .js and its .wasm; fifty lines is not a report
+  # anybody reads.
+  local names="" seen
+  while IFS=$'\t' read -r file was made; do
+    case "$file" in '#'*|'') continue ;; esac
+
+    if [ ! -f "$dir/$file" ]; then
+      echo "   $file is written down and not there"
+      behind=$((behind + 1))
+      continue
+    fi
+
+    # cubes.mp4, cubes.png, cubes.js and cubes_bg.wasm are all cubes
+    seen=${file%.*}
+    seen=${seen%_bg}
+
+    local gap
+    gap=$(since "$was" "$seen")
+    [ "$gap" = 0 ] || [ "$gap" = "?" ] && continue
+
+    case " $names " in *" $seen "*) continue ;; esac
+    names="$names $seen"
+
+    echo "   $seen, $gap engine $( [ "$gap" = 1 ] && echo commit || echo commits ) behind, made $made"
+    behind=$((behind + 1))
+  done < "$manifest"
+
+  # and anything there that nothing wrote down
+  for file in "$dir"/*; do
+    local name
+    name=$(basename "$file")
+    case "$name" in MADE|*.md) continue ;; esac
+    [ -f "$file" ] || continue
+    grep -q "^$name	" "$manifest" || echo "   $name is there and nothing wrote down where it came from"
+  done
+}
+
+look blitzkit/media/MADE "the engine's clips and stills"
+echo
+look blitzkit/web/MADE "the examples built for a browser"
+echo
+
+if [ "$unwritten" != 0 ]; then
+  echo "$unwritten of the two manifests is missing, so this cannot say much yet."
+  echo "./refresh-examples and ./build-web write them as they go."
+elif [ "$behind" = 0 ]; then
+  echo "everything derived is level with the engine"
+else
+  echo "$behind behind the engine. ./refresh-examples and ./build-web bring them up."
+  # a bare `[ ... ] && exit 1` at the end of a script leaves its own false
+  # status as the script's, which had this reporting failure every time it
+  # reported anything at all
+  if [ "$strict" = 1 ]; then
+    exit 1
+  fi
+fi
+
+exit 0

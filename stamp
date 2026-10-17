@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Write down what a derived thing was made from.
+#
+# The clips, the stills and the browser builds are all made from the engine
+# and all of them drift out of date silently. Nothing in the gate could see
+# it: ./check-listings asks whether a thing exists and is mentioned, never
+# whether it is current, so on 2026-10-16 every clip and every browser build
+# was a day behind the engine and the published arcade was missing a whole
+# room.
+#
+# The naive check is worse than none. "The engine changed" is one date for the
+# whole of blitzkit/src, so a change to sound.rs marks the teapot's clip stale
+# along with the other ten; a check that always fails is one you learn to
+# ignore. So this records a commit per artefact and ./check-fresh reports the
+# gap, which is a number you can act on or shrug at rather than an alarm.
+#
+# What would make it a real check rather than a report is a staged shot you
+# can take twice and get the same bytes from. Two staged shots of the same
+# scene came out 650640 and 648292 bytes, because what is staged keeps moving
+# with the clock, so there is no comparing to be done until the clock is
+# pinned. See spec 0056.
+#
+# Usage: ./stamp <manifest> <file> [<file> ...]
+#   paths are relative to the manifest's own directory.
+
+set -euo pipefail
+
+manifest=$1
+shift
+
+engine=$(git -C blitzkit rev-parse --short HEAD 2>/dev/null || echo unknown)
+# a dirty tree is not the commit it claims to be, and saying so is cheaper
+# than pretending
+if ! git -C blitzkit diff --quiet -- src examples 2>/dev/null; then
+  engine="$engine+"
+fi
+when=$(date '+%Y-%m-%dT%H:%M')
+
+mkdir -p "$(dirname "$manifest")"
+if [ ! -f "$manifest" ]; then
+  {
+    echo "# What each thing here was made from, and when."
+    echo "#"
+    echo "# Written by ./stamp, called from ./build-web and ./refresh-examples."
+    echo "# Read by ./check-fresh, which reports how far behind the engine each"
+    echo "# one is. A + on the commit means the engine's tree was dirty, so what"
+    echo "# was built is not quite that commit."
+    echo "#"
+    echo "# file	engine	made"
+  } > "$manifest"
+fi
+
+for file in "$@"; do
+  # out with the old line, in with the new
+  tmp=$(mktemp)
+  grep -v "^$file	" "$manifest" > "$tmp" || true
+  printf '%s\t%s\t%s\n' "$file" "$engine" "$when" >> "$tmp"
+  # the comments first, then the rest in name order, so a diff is readable
+  { grep '^#' "$tmp"; grep -v '^#' "$tmp" | grep -v '^$' | sort; } > "$manifest"
+  rm -f "$tmp"
+done
