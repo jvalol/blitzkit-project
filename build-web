@@ -106,9 +106,15 @@ for name in "${wanted[@]}"; do
   wasm-bindgen --target web --no-typescript --out-dir "$OUT" \
     "$built/wasm32-unknown-unknown/release/$from/$name.wasm"
 
-  # written down as it is made, so ./check-fresh can say how far behind the
-  # engine this build is without anybody having to remember
-  ./stamp "$OUT/MADE" "$name.js" "${name}_bg.wasm"
+  # written down as it is made, so ./check-fresh can say how far behind this
+  # build is without anybody having to remember. Two commits: the engine, and
+  # the repo it was built out of when that is not the engine. An example is
+  # the engine's own and names no second one.
+  if [ "$kind" = example ]; then
+    ./stamp "$OUT/MADE" "$name.js" "${name}_bg.wasm"
+  else
+    ./stamp "$OUT/MADE" --from "$repo" "$name.js" "${name}_bg.wasm"
+  fi
 
   size=$(stat -f%z "$OUT/${name}_bg.wasm")
   small=$(gzip -9 -c "$OUT/${name}_bg.wasm" | wc -c | tr -d ' ')

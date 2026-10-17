@@ -498,9 +498,15 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   ffmpeg -nostdin -hide_banner -loglevel error -ss "${poster:-1}" \
     -i "$OUT/$name.mp4" -vframes 1 "$OUT/$name.png" -y >/dev/null 2>&1 </dev/null
 
-  # written down as it is filmed, so ./check-fresh can say how far behind the
-  # engine this clip is without anybody having to remember
-  ./stamp "$OUT/MADE" "$name.mp4" "$name.png"
+  # written down as it is filmed, so ./check-fresh can say how far behind this
+  # clip is without anybody having to remember. The arcade has a repo of its
+  # own on top of the engine and the rest do not, which is the whole of why
+  # this takes two commits rather than one.
+  if [ "$runs" = arcade ]; then
+    ./stamp "$OUT/MADE" --from arcade "$name.mp4" "$name.png"
+  else
+    ./stamp "$OUT/MADE" "$name.mp4" "$name.png"
+  fi
 
   say "   $OUT/$name.mp4 and $OUT/$name.png, $WIDE wide"
   made=$((made + 1))

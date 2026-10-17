@@ -20,13 +20,35 @@
 # with the clock, so there is no comparing to be done until the clock is
 # pinned. See spec 0056.
 #
-# Usage: ./stamp <manifest> <file> [<file> ...]
-#   paths are relative to the manifest's own directory.
+# **An artefact is made from two things, not one.** The engine is in all of
+# them, and anything that is not an example has a repo of its own on top of
+# that. The first version of this recorded only the engine, which meant the
+# arcade's browser build could be a day of work out of date and report as
+# level: the arcade is not an example, so nothing it owns was being counted.
+# That is the exact failure this was written to stop, so it is written down
+# here rather than only fixed.
+#
+# Usage: ./stamp <manifest> [--from <repo>] <file> [<file> ...]
+#   paths are relative to the manifest's own directory
+#   --from names the repo the thing was built out of, when that is not the
+#   engine. Left off for an example, which is the engine's own.
 
 set -euo pipefail
 
 manifest=$1
 shift
+
+from=-
+if [ "${1:-}" = --from ]; then
+  repo=$2
+  shift 2
+
+  at=$(git -C "$repo" rev-parse --short HEAD 2>/dev/null || echo unknown)
+  if ! git -C "$repo" diff --quiet 2>/dev/null; then
+    at="$at+"
+  fi
+  from="$(basename "$repo")@$at"
+fi
 
 engine=$(git -C blitzkit rev-parse --short HEAD 2>/dev/null || echo unknown)
 # a dirty tree is not the commit it claims to be, and saying so is cheaper
@@ -42,11 +64,14 @@ if [ ! -f "$manifest" ]; then
     echo "# What each thing here was made from, and when."
     echo "#"
     echo "# Written by ./stamp, called from ./build-web and ./refresh-examples."
-    echo "# Read by ./check-fresh, which reports how far behind the engine each"
-    echo "# one is. A + on the commit means the engine's tree was dirty, so what"
-    echo "# was built is not quite that commit."
+    echo "# Read by ./check-fresh, which reports how far behind each one is."
     echo "#"
-    echo "# file	engine	made"
+    echo "# Two commits, because a thing is made from two. The engine is in all"
+    echo "# of them; source is the repo it was built out of when that is not"
+    echo "# the engine, and a dash when it is. A + on either means that tree"
+    echo "# was dirty, so what was built is not quite that commit."
+    echo "#"
+    echo "# file	engine	source	made"
   } > "$manifest"
 fi
 
@@ -54,7 +79,7 @@ for file in "$@"; do
   # out with the old line, in with the new
   tmp=$(mktemp)
   grep -v "^$file	" "$manifest" > "$tmp" || true
-  printf '%s\t%s\t%s\n' "$file" "$engine" "$when" >> "$tmp"
+  printf '%s\t%s\t%s\t%s\n' "$file" "$engine" "$from" "$when" >> "$tmp"
   # the comments first, then the rest in name order, so a diff is readable
   { grep '^#' "$tmp"; grep -v '^#' "$tmp" | grep -v '^$' | sort; } > "$manifest"
   rm -f "$tmp"

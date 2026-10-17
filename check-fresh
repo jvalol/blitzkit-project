@@ -27,7 +27,7 @@ unwritten=0
 # meant that deleting tower marked teapot two commits behind, and rebuilding
 # teapot then produced byte identical output. A counter that counts changes to
 # other people's files is the false alarm this was written to avoid.
-since() {
+behind_engine() {
   local was=${1%+} name=$2
   [ "$was" = unknown ] && { echo "?"; return; }
 
@@ -35,6 +35,32 @@ since() {
   [ -f "blitzkit/examples/$name.rs" ] && mine+=("examples/$name.rs")
 
   git -C blitzkit rev-list --count "$was"..HEAD -- "${mine[@]}" 2>/dev/null || echo "?"
+}
+
+# and how many in the repo it was built out of, when that is not the engine.
+#
+# **The hole this closes.** The arcade is not an example, so nothing under
+# blitzkit belongs to it, and counting the engine alone said its browser build
+# was level while a whole room had been built, walked, parked and committed in
+# the arcade's own repo. A freshness check that cannot see the thing that
+# changed is worse than none, because it is believed.
+behind_source() {
+  local from=$1
+
+  if [ "$from" = "-" ] || [ -z "$from" ]; then
+    echo 0
+    return
+  fi
+
+  local repo=${from%@*} was=${from#*@}
+  was=${was%+}
+  [ "$was" = unknown ] && { echo "?"; return; }
+
+  local where=$repo
+  [ -d "$where/.git" ] || where="games/$repo"
+  [ -d "$where/.git" ] || { echo "?"; return; }
+
+  git -C "$where" rev-list --count "$was"..HEAD 2>/dev/null || echo "?"
 }
 
 look() {
@@ -53,7 +79,13 @@ look() {
   # thing, and so are a .js and its .wasm; fifty lines is not a report
   # anybody reads.
   local names="" seen
-  while IFS=$'\t' read -r file was made; do
+  while IFS=$'\t' read -r file was from made; do
+    # a line written before this knew about source repos
+    if [ -z "$made" ]; then
+      made=$from
+      from=-
+    fi
+
     case "$file" in '#'*|'') continue ;; esac
 
     if [ ! -f "$dir/$file" ]; then
@@ -66,14 +98,30 @@ look() {
     seen=${file%.*}
     seen=${seen%_bg}
 
-    local gap
-    gap=$(since "$was" "$seen")
-    [ "$gap" = 0 ] || [ "$gap" = "?" ] && continue
-
     case " $names " in *" $seen "*) continue ;; esac
+
+    local gap own
+    gap=$(behind_engine "$was" "$seen")
+    own=$(behind_source "$from")
+
+    if [ "$gap" = "?" ] || [ "$own" = "?" ]; then
+      names="$names $seen"
+      echo "   $seen, made $made from something this cannot read"
+      behind=$((behind + 1))
+      continue
+    fi
+
+    [ "$gap" = 0 ] && [ "$own" = 0 ] && continue
     names="$names $seen"
 
-    echo "   $seen, $gap engine $( [ "$gap" = 1 ] && echo commit || echo commits ) behind, made $made"
+    local says=""
+    [ "$gap" != 0 ] && says="$gap engine $( [ "$gap" = 1 ] && echo commit || echo commits )"
+    if [ "$own" != 0 ]; then
+      [ -n "$says" ] && says="$says and "
+      says="$says$own of its own"
+    fi
+
+    echo "   $seen, $says behind, made $made"
     behind=$((behind + 1))
   done < "$manifest"
 
