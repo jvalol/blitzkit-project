@@ -53,12 +53,17 @@ PREROLL=${PREROLL:-2}
 # is in every clip.
 #
 # The keys are what somebody would press while watching, sent once the camera
-# is running. A key is a letter, `space`, or an arrow as
+# is running. A key is a letter, `space`, `enter`, or an arrow as
 # `left`/`right`/`up`/`down`; `hold:<key>:<seconds>` holds one down;
 # `tap:<key>:<many>:<gap>` hits it over and over;
 # `shove:<across>:<down>:<held>` presses the mouse at that fraction of the
 # window for that long; `zoom:<ticks>` turns the wheel over the middle of it;
 # and a number on its own is a wait in seconds.
+#
+# `enter` is in the list because of the arcade, where it is one of the two
+# ways to work the toy you are looking at and the only one that can be filmed.
+# That building holds the cursor, so the mouse turns the view rather than
+# pointing at anything, and a `shove` would land as a shove of the camera.
 #
 # Digits are not in that list and cannot be. `1` and `2` pick cork or granite
 # in ripple and neither reaches the window, sent as `keystroke "2"` or as its
@@ -95,7 +100,7 @@ menger	1	7	5	1.5 up 2.5 down
 hilbert	1	7	5	1.5 up 2.5 down
 ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
 chain	1.5	8	3.4	1 tap:right:20:0.035 3
-arcade	3	12	4	hold:w:2.6 hold:right:0.45 hold:w:1.3 hold:left:0.9 hold:w:1.3 hold:right:0.45 hold:w:0.6 hold:left:1.4
+arcade	3	16	3.2	hold:w:4.65 hold:right:0.41 hold:down:0.08 enter hold:right:0.66 hold:w:0.95
 LIST
 )
 
@@ -170,6 +175,7 @@ front() {
 key_code() {
   case "$1" in
     space) echo 49 ;;
+    enter) echo 36 ;;
     left) echo 123 ;;
     right) echo 124 ;;
     down) echo 125 ;;
@@ -301,6 +307,11 @@ SWIFT
 press() {
   case "$1" in
     space) osascript -e 'tell application "System Events" to key code 49' >/dev/null 2>&1 || true ;;
+    # by its code, like the four above. `keystroke "enter"` types the five
+    # letters of the word, which in the arcade is five keys that do other
+    # things: the first clip filmed with it worked a toy and typed at the
+    # building instead of opening the room it was aiming at.
+    enter) osascript -e 'tell application "System Events" to key code 36' >/dev/null 2>&1 || true ;;
     left) osascript -e 'tell application "System Events" to key code 123' >/dev/null 2>&1 || true ;;
     right) osascript -e 'tell application "System Events" to key code 124' >/dev/null 2>&1 || true ;;
     down) osascript -e 'tell application "System Events" to key code 125' >/dev/null 2>&1 || true ;;
