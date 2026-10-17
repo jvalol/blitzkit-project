@@ -135,9 +135,71 @@ look() {
   done
 }
 
+# and the third kind of drift: what the site is actually handing out.
+#
+# **The one nothing in the repo can see.** The two sections above compare the
+# repo against itself, and on 2026-10-17 they were perfectly happy while the
+# live site had been serving the clips from 15 October for five hours. Two
+# pushes had been cancelled by Netlify with "no content change", because its
+# base is site/ and the clips and the browser builds live at the repo root.
+# The repo was right, the build was right, and what a stranger got was neither.
+#
+# Size and not a hash, deliberately. Hashing means pulling 22 megabytes down
+# every run, and what goes wrong here is a whole file being an older build
+# rather than a byte changing inside one. A file that changed without changing
+# size would slip through, which is worth knowing and is not worth 22
+# megabytes a run.
+serving() {
+    local site=https://blitzkit.jva.lol
+    echo "== what the site is actually serving"
+
+    if ! curl -fsS --max-time 6 -o /dev/null "$site/" 2>/dev/null; then
+        echo "   $site did not answer, so this says nothing either way"
+        return
+    fi
+
+    local list
+    list=$(mktemp)
+    for dir in blitzkit/media blitzkit/web; do
+        for file in "$dir"/*; do
+            local name
+            name=$(basename "$file")
+            case "$name" in MADE | *.md) continue ;; esac
+            [ -f "$file" ] || continue
+            printf '%s\t%s\n' "${file#blitzkit/}" "$(stat -f%z "$file")" >> "$list"
+        done
+    done
+
+    local said
+    said=$(
+        # eight at a time, because fifty two one after another is half a minute
+        # and nobody waits through that twice
+        xargs -P 8 -L 1 bash -c '
+            live=$(curl -fsS --max-time 6 -I "https://blitzkit.jva.lol/$0" 2>/dev/null |
+                awk "/[Cc]ontent-[Ll]ength/{print \$2}" | tr -d "\r")
+
+            if [ -z "$live" ]; then
+                echo "   $0 is not there at all"
+            elif [ "$live" != "$1" ]; then
+                echo "   $0 is $live on the site and $1 here"
+            fi
+        ' < "$list"
+    )
+    rm -f "$list"
+
+    if [ -z "$said" ]; then
+        echo "   every clip, still and browser build matches what is here"
+    else
+        printf '%s\n' "$said" | sort
+        behind=$((behind + $(printf '%s\n' "$said" | grep -c .)))
+    fi
+}
+
 look blitzkit/media/MADE "the engine's clips and stills"
 echo
 look blitzkit/web/MADE "the examples built for a browser"
+echo
+serving
 echo
 
 if [ "$unwritten" != 0 ]; then

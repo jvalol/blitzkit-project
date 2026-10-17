@@ -72,12 +72,18 @@ fi
 # Every example and every game is written about in three places, and adding one
 # means remembering all three. Nothing in a cargo run reads prose, so a new
 # example was listed nowhere and everything still passed.
-echo "== how far behind the engine the derived things are"
+echo "== how far behind the derived things are, here and on the site"
 # a report rather than a gate. What a clip is made from is the whole engine,
 # so any commit to blitzkit/src could have changed every one of them and
 # almost never does; a check that fails on every engine commit is a check
 # nobody reads. blitzkit/scripts/pre-push is the one that refuses, and only
 # about the browser builds, because pushing blitzkit publishes the site.
+#
+# It also asks what blitzkit.jva.lol is actually handing out, which is the one
+# kind of drift nothing in the repo can see: on 2026-10-17 two pushes sat
+# cancelled for five hours while everything here agreed with everything else.
+# That part costs three seconds and says nothing at all when the site cannot
+# be reached, so it is safe to run with no network.
 ./check-fresh
 
 echo "== listings"
