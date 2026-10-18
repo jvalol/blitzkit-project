@@ -100,6 +100,7 @@ menger	1	7	5	1.5 up 2.5 down
 hilbert	1	7	5	1.5 up 2.5 down
 ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
 chain	1.5	8	3.4	1 tap:right:20:0.035 3
+load	3	15	6	1.5 m 1.5 up 1.5 up 1.5 up 2
 arcade	3	16	3.2	hold:w:4.65 hold:right:0.41 hold:down:0.08 enter hold:right:0.66 hold:w:0.95
 LIST
 )
