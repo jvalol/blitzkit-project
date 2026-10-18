@@ -136,9 +136,9 @@ cargo run --release --example knot
 cargo run --release --example load
 ```
 
-![A thousand white cubes standing in a grid against black, their rows running away from the middle of the picture, with a readout over them giving the work in milliseconds, the time between frames, and the draw and triangle counts](https://raw.githubusercontent.com/jvalol/blitzkit/main/media/load.png)
+![Seventeen hundred white cubes standing in a grid against black, their rows running away from the middle of the picture, with a readout over them giving the work in milliseconds, the time between frames, and the draw and triangle counts](https://raw.githubusercontent.com/jvalol/blitzkit/main/media/load.png)
 
-[COPY - Jake] Turn the dials and watch what a frame costs. Sixteen thousand cubes as one mesh is four draw calls; the same sixteen thousand as their own meshes is forty nine thousand.
+[COPY - Jake] Turn the dials and watch what a frame costs. Sixty four thousand cubes as one mesh is four draw calls; the same sixty four thousand as their own meshes is a hundred and ninety two thousand.
 
 ```
 cargo run --release --example cubes
