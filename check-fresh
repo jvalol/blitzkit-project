@@ -60,7 +60,23 @@ behind_source() {
   [ -d "$where/.git" ] || where="games/$repo"
   [ -d "$where/.git" ] || { echo "?"; return; }
 
-  git -C "$where" rev-list --count "$was"..HEAD 2>/dev/null || echo "?"
+  # everything in that repo except its prose, for the reason behind_engine
+  # gives above and which this half of the pair did not have. Restoring the
+  # arcade's spec 0012 on 2026-10-20 marked its browser build a commit
+  # behind, and the engine's pre-push refuses on any line of that section,
+  # so a spec commit in one repo armed a refusal in another. A rebuild would
+  # have moved a stamp and changed no bytes.
+  #
+  # Taken away rather than named, which is the opposite of behind_engine and
+  # is deliberate. That one knows what an example is made of. This one is
+  # handed a repo it knows nothing about, so the safe direction is to count
+  # everything it cannot prove is prose: a game that grows a res/ or an
+  # assets/ keeps counting without anybody remembering to say so. Nothing
+  # here compiles a .md or a spec, which was checked rather than assumed,
+  # and data/ still counts because the arcade's globe is an include_str! of
+  # one.
+  git -C "$where" rev-list --count "$was"..HEAD \
+    -- . ':(exclude)specs' ':(exclude)*.md' 2>/dev/null || echo "?"
 }
 
 look() {
