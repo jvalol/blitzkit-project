@@ -101,6 +101,28 @@ for repo in "${repos[@]}"; do
   # that do not exist yet and is a real draft, which is what blitzkit's 0024
   # is: it says in its own body that it waits for something to need it, and
   # eight of its ten names are things nobody has written.
+  # Every loop here decides whether to read a spec at all from its Status
+  # line, so a spec without one is outside the whole check and nothing says
+  # so. The arcade's 0012 was: a commit meant to read it against the code
+  # emptied all 113 lines of it instead, and six days passed with the gate
+  # green, the README still indexing it and src/spa.rs still citing it.
+  #
+  # The line and not its value, because a Status is prose in several of these
+  # and deliberately so: "reverted the same day, because it took the sun's
+  # shadows with it" says more than one word from a list would. What cannot
+  # be allowed is the header going missing altogether.
+  for spec in "$repo"/specs/*.md; do
+    case "$(basename "$spec")" in README.md | TEMPLATE.md) continue ;; esac
+    grep -q '^\*\*Status:\*\*' "$spec" && continue
+
+    if [ -s "$spec" ]; then
+      echo "  $spec has no **Status:** line, so nothing here reads it"
+    else
+      echo "  $spec is empty"
+    fi
+    missing=$((missing + 1))
+  done
+
   for spec in "$repo"/specs/*.md; do
     grep -qx '\*\*Status:\*\* draft' "$spec" || continue
 
