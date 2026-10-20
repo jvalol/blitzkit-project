@@ -32,9 +32,18 @@ say() { printf '%s\n' "$*"; }
 # The arcade is not an example and not in this engine's repo, so it is named
 # here rather than found. Everything else is a file under blitzkit/examples.
 where_is() {
+  # A game is its own repo under games/, and is built the way the arcade is:
+  # a bin rather than an example. Read off the disc rather than listed here,
+  # for the reason ./list-repos exists. Spec 0055.
   case "$1" in
     arcade) echo "arcade bin" ;;
-    *) echo "blitzkit example" ;;
+    *)
+      if [ -f "games/$1/Cargo.toml" ]; then
+        echo "games/$1 bin"
+      else
+        echo "blitzkit example"
+      fi
+      ;;
   esac
 }
 
