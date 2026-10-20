@@ -72,7 +72,37 @@ for repo in "${repos[@]}"; do
       if ! grep -q "\[$number\]" "$repo/specs/README.md"; then
         echo "  $repo/specs/README.md does not list $number"
         missing=$((missing + 1))
+        continue
       fi
+
+      # and the row agrees with the spec about whether it is a draft. Two
+      # places saying the same thing drift, which is the fault this whole
+      # file exists for: thirteen rows across three repos said "(draft)"
+      # for a spec that said implemented, all six of lantern's among them,
+      # and the loop below that catches a stale draft reads the spec's
+      # Status and never the row where the answer is written twice.
+      #
+      # Only the two words it can judge. A Status is prose in several of
+      # these on purpose, "reverted the same day, because it took the sun's
+      # shadows with it", and a row is free to say what it likes about one
+      # of those.
+      row=$(grep "\[$number\]" "$repo/specs/README.md")
+      status=$(sed -n 's/^\*\*Status:\*\* //p' "$spec" | head -1)
+
+      case "$status" in
+      implemented)
+        if grep -q '(draft)' <<<"$row"; then
+          echo "  $repo/specs/README.md calls $number a draft and the spec says implemented"
+          missing=$((missing + 1))
+        fi
+        ;;
+      draft)
+        if ! grep -q '(draft)' <<<"$row"; then
+          echo "  $repo/specs/README.md does not call $number a draft and the spec does"
+          missing=$((missing + 1))
+        fi
+        ;;
+      esac
     done
   fi
 
