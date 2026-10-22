@@ -60,25 +60,31 @@ PREROLL=${PREROLL:-2}
 # window for that long; `zoom:<ticks>` turns the wheel over the middle of it;
 # and a number on its own is a wait in seconds.
 #
-# **The arcade's line walks to the hotel and the register.** It used to walk
-# into the hall and turn to look at the cabinets, which was right when the
-# hall was all there was. The building has a hotel with a corridor of numbered
-# doors, people who move rooms when the desk takes somebody, and a register
-# behind the one door with no number, and none of that was on film.
+# **The arcade's line walks to the hotel and its two corridors.** It used to
+# walk into the hall and turn to look at the cabinets, which was right when
+# the hall was all there was. The building has a hotel with a corridor of
+# numbered doors, people who move rooms when the desk takes somebody, a
+# register behind the one door with no number, and a second corridor off the
+# same lobby where the doors are at Fibonacci metres.
+#
+# **The register is not in it.** It was, and the clip cannot hold everything:
+# the hotel's two corridors are one idea and the register is a second, and a
+# clip that visits both is a tour rather than a demonstration. What this
+# shows is a desk that houses somebody, a corridor where the move happens,
+# and the same rooms laid out so you cannot walk to them.
 #
 # It is walked rather than run because there is no way to hold shift here, and
 # that is no loss: running past a building is how you miss it.
 #
-# **Twenty eight seconds, and not because the walk takes that long.** It is
-# eighteen and a half seconds of holds, and it was measured at twenty seven
-# of clip. The difference is in two places and neither is guessable from the
+# **Thirty seconds, and not because the walk takes that long.** It is
+# twenty two seconds of holds. The difference is in two places and neither is guessable from the
 # table, so it is written down here:
 #
 #   3.6s before the first key, which is the camera opening, the window
 #   lookup, the call to bring it to the front, and the settle above.
 #
 #   0.3s after every key, which is `play`'s own margin and the process it
-#   spawns. Nineteen steps of that is five seconds.
+#   spawns. Sixteen steps of that is five seconds.
 #
 # Twenty was tried first and the walk ran off the end: it reached the
 # corridor and never got to the room it was staged for. That clip was filmed
@@ -86,16 +92,14 @@ PREROLL=${PREROLL:-2}
 # of this file is for.
 #
 # The route was not guessed. It was driven against the game's own `walk` and
-# its own colliders, a frame at a time, until it came out at the head of the
-# page with the whole diagonal taken. Two things it found are worth knowing
+# its own colliders, a frame at a time, reading what the long hall says at
+# every step until the numbers came apart. Two things it found are worth knowing
 # before anybody edits these numbers. The wave of guests runs west at six
 # rooms a second, so it must be watched from the lobby: walk after it and it
-# is forty metres ahead of you down an empty corridor. And the walk into the
-# register goes through the one door in the hotel anybody passes, which was a
-# hit and miss passage until it was widened: 65, 66 and 67 got through, 68
-# and 69 did not, and 70 did. It is `BLANK_WIDE` now and the band is 65 to 70
-# with no holes in it, so `hold:w:1.12` sits in the middle of 100ms rather
-# than 50.
+# is forty metres ahead of you down an empty corridor. And the turns into the
+# long hall have to be square: a quarter turn out of 1.6 radians is 1.32
+# seconds and not one, and getting it wrong walks the hall at forty degrees
+# to its own axis, scraping a wall for nine seconds.
 #
 # `enter` is in the list because of the arcade, where it is one of the two
 # ways to work the toy you are looking at and the only one that can be filmed.
@@ -139,7 +143,7 @@ ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
 chain	1.5	8	3.4	1 tap:right:20:0.035 3
 knot	1	8	4	hold:right:1.6 m 1.2 m 1.0 down 1.2 up
 load	3	15	6	1.5 m 1.5 up 1.5 up 1.5 up 2
-arcade	2.5	28	3.2	hold:w:4.43 hold:left:0.655 hold:w:1.51 hold:right:0.41 hold:w:0.6 hold:right:0.28 hold:down:0.3 enter hold:up:0.3 hold:s:0.25 hold:left:0.69 1.3 hold:w:1.12 hold:right:0.655 hold:w:0.9 hold:left:0.655 hold:w:1.95 hold:right:0.655 hold:d:1.0
+arcade	2.5	30	3.2	hold:w:4.43 hold:left:0.655 hold:w:1.51 hold:right:0.41 hold:w:0.6 hold:right:0.28 hold:down:0.3 enter hold:up:0.3 hold:s:0.25 hold:left:0.69 1.3 hold:right:1.32 hold:w:0.62 hold:left:0.655 hold:w:9.0
 LIST
 )
 
