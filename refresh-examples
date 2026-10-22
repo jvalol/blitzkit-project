@@ -67,8 +67,23 @@ PREROLL=${PREROLL:-2}
 # behind the one door with no number, and none of that was on film.
 #
 # It is walked rather than run because there is no way to hold shift here, and
-# that is no loss: running past a building is how you miss it. Twenty seconds
-# rather than sixteen is what the walk costs.
+# that is no loss: running past a building is how you miss it.
+#
+# **Twenty eight seconds, and not because the walk takes that long.** It is
+# eighteen and a half seconds of holds, and it was measured at twenty seven
+# of clip. The difference is in two places and neither is guessable from the
+# table, so it is written down here:
+#
+#   3.6s before the first key, which is the camera opening, the window
+#   lookup, the call to bring it to the front, and the settle above.
+#
+#   0.3s after every key, which is `play`'s own margin and the process it
+#   spawns. Nineteen steps of that is five seconds.
+#
+# Twenty was tried first and the walk ran off the end: it reached the
+# corridor and never got to the room it was staged for. That clip was filmed
+# and looked at before anybody noticed, which is what the line at the bottom
+# of this file is for.
 #
 # The route was not guessed. It was driven against the game's own `walk` and
 # its own colliders, a frame at a time, until it came out at the head of the
@@ -124,11 +139,48 @@ ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
 chain	1.5	8	3.4	1 tap:right:20:0.035 3
 knot	1	8	4	hold:right:1.6 m 1.2 m 1.0 down 1.2 up
 load	3	15	6	1.5 m 1.5 up 1.5 up 1.5 up 2
-arcade	3	20	3.2	hold:w:4.43 hold:left:0.655 hold:w:1.51 hold:right:0.41 hold:w:0.6 hold:right:0.28 hold:down:0.3 enter hold:up:0.3 hold:s:0.25 hold:left:0.69 1.3 hold:w:1.12 hold:right:0.655 hold:w:0.9 hold:left:0.655 hold:w:1.95 hold:right:0.655 hold:d:1.0
+arcade	2.5	28	3.2	hold:w:4.43 hold:left:0.655 hold:w:1.51 hold:right:0.41 hold:w:0.6 hold:right:0.28 hold:down:0.3 enter hold:up:0.3 hold:s:0.25 hold:left:0.69 1.3 hold:w:1.12 hold:right:0.655 hold:w:0.9 hold:left:0.655 hold:w:1.95 hold:right:0.655 hold:d:1.0
 LIST
 )
 
 say() { printf '%s\n' "$*"; }
+
+# **Compiled once, not once a press.** Every helper below wrote a Swift file
+# and ran it with `swift`, which compiles before it runs. That is a third of
+# a second of nothing between one key and the next, and the arcade's staging
+# is nineteen keys long: the walk came out seven seconds longer than it was
+# written to be, ran off the end of a twenty second clip, and never reached
+# the room it was staged for. The timings in the table are what the game
+# sees now rather than what it saw plus an unknown amount of compiler.
+#
+# The source is only written when it has changed, because `cat` touches the
+# mtime and a file that is always newer than its binary is always rebuilt.
+put_swift() {
+  local src=/tmp/blitzkit-$1.swift
+  local new
+
+  new=$(cat)
+
+  if [ ! -f "$src" ] || [ "$(cat "$src")" != "$new" ]; then
+    printf '%s\n' "$new" > "$src"
+    rm -f "/tmp/blitzkit-$1"
+  fi
+}
+
+swift_run() {
+  local name=$1
+  shift
+  local src=/tmp/blitzkit-$name.swift
+  local bin=/tmp/blitzkit-$name
+
+  [ -x "$bin" ] || swiftc -O "$src" -o "$bin" 2>/dev/null || true
+
+  if [ -x "$bin" ]; then
+    "$bin" "$@"
+  else
+    swift "$src" "$@"
+  fi
+}
 
 # End a run, and mean it. The same two steps as ./refresh-screenshots: a
 # window that ignores a polite ask leaves `wait` blocking for ever.
@@ -152,7 +204,7 @@ stop() {
 # theirs after the game, which is why this does not take
 # ./refresh-screenshots' function as it stands.
 window_box() {
-  cat > /tmp/blitzkit-example-window.swift <<'SWIFT'
+  put_swift example-window <<'SWIFT'
 import CoreGraphics
 import Foundation
 let want = (CommandLine.arguments.dropFirst().first ?? "").lowercased()
@@ -168,7 +220,7 @@ for w in on {
     }
 }
 SWIFT
-  swift /tmp/blitzkit-example-window.swift "$1"
+  swift_run example-window "$1"
 }
 
 # How many pixels there are to a point on the screen being filmed.
@@ -228,7 +280,7 @@ tap() {
   code=$(key_code "$1")
   [ -n "$code" ] || { say "   no key code for $1"; return; }
 
-  cat > /tmp/blitzkit-tap.swift <<'SWIFT'
+  put_swift tap <<'SWIFT'
 import CoreGraphics
 import Foundation
 let a = CommandLine.arguments.dropFirst()
@@ -242,7 +294,7 @@ for _ in 0..<many {
     Thread.sleep(forTimeInterval: gap)
 }
 SWIFT
-  swift /tmp/blitzkit-tap.swift "$code" "$2" "$3" >/dev/null 2>&1 || true
+  swift_run tap "$code" "$2" "$3" >/dev/null 2>&1 || true
 }
 
 # Click the window, at a fraction of the way across and down it.
@@ -261,7 +313,7 @@ shove() {
   at_x=$(awk -v x="$WIN_X" -v w="$WIN_W" -v f="$across" 'BEGIN{printf "%d", x + w * f}')
   at_y=$(awk -v y="$WIN_Y" -v h="$WIN_H" -v f="$down" 'BEGIN{printf "%d", y + h * f}')
 
-  cat > /tmp/blitzkit-shove.swift <<'SWIFT'
+  put_swift shove <<'SWIFT'
 import CoreGraphics
 import Foundation
 let a = CommandLine.arguments.dropFirst()
@@ -275,7 +327,7 @@ CGEvent(mouseEventSource: src, mouseType: .leftMouseDown, mouseCursorPosition: a
 Thread.sleep(forTimeInterval: held)
 CGEvent(mouseEventSource: src, mouseType: .leftMouseUp, mouseCursorPosition: at, mouseButton: .left)?.post(tap: .cghidEventTap)
 SWIFT
-  swift /tmp/blitzkit-shove.swift "$at_x" "$at_y" "$held" >/dev/null 2>&1 || true
+  swift_run shove "$at_x" "$at_y" "$held" >/dev/null 2>&1 || true
 }
 
 # Turn the wheel over the middle of the window.
@@ -289,7 +341,7 @@ wheel() {
   at_x=$(awk -v x="$WIN_X" -v w="$WIN_W" 'BEGIN{printf "%d", x + w * 0.5}')
   at_y=$(awk -v y="$WIN_Y" -v h="$WIN_H" 'BEGIN{printf "%d", y + h * 0.5}')
 
-  cat > /tmp/blitzkit-wheel.swift <<'SWIFT'
+  put_swift wheel <<'SWIFT'
 import CoreGraphics
 import Foundation
 let a = CommandLine.arguments.dropFirst()
@@ -307,7 +359,7 @@ for _ in 0..<abs(ticks) {
     Thread.sleep(forTimeInterval: 0.03)
 }
 SWIFT
-  swift /tmp/blitzkit-wheel.swift "$at_x" "$at_y" "$ticks" >/dev/null 2>&1 || true
+  swift_run wheel "$at_x" "$at_y" "$ticks" >/dev/null 2>&1 || true
 }
 
 hold() {
@@ -315,7 +367,7 @@ hold() {
   code=$(key_code "$1")
   [ -n "$code" ] || { say "   no key code for $1"; return; }
 
-  cat > /tmp/blitzkit-hold.swift <<'SWIFT'
+  put_swift hold <<'SWIFT'
 import CoreGraphics
 import Foundation
 let args = CommandLine.arguments.dropFirst()
@@ -325,7 +377,7 @@ CGEvent(keyboardEventSource: src, virtualKey: CGKeyCode(code), keyDown: true)?.p
 Thread.sleep(forTimeInterval: secs)
 CGEvent(keyboardEventSource: src, virtualKey: CGKeyCode(code), keyDown: false)?.post(tap: .cghidEventTap)
 SWIFT
-  swift /tmp/blitzkit-hold.swift "$code" "$2" >/dev/null 2>&1 || true
+  swift_run hold "$code" "$2" >/dev/null 2>&1 || true
 }
 
 press() {
