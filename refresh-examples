@@ -75,9 +75,12 @@ PREROLL=${PREROLL:-2}
 # page with the whole diagonal taken. Two things it found are worth knowing
 # before anybody edits these numbers. The wave of guests runs west at six
 # rooms a second, so it must be watched from the lobby: walk after it and it
-# is forty metres ahead of you down an empty corridor. And the blank door's
-# open leaf makes its own doorway a hit and miss passage, so `hold:w:1.1` is
-# the middle of a band three frames wide and is not a number to round.
+# is forty metres ahead of you down an empty corridor. And the walk into the
+# register goes through the one door in the hotel anybody passes, which was a
+# hit and miss passage until it was widened: 65, 66 and 67 got through, 68
+# and 69 did not, and 70 did. It is `BLANK_WIDE` now and the band is 65 to 70
+# with no holes in it, so `hold:w:1.12` sits in the middle of 100ms rather
+# than 50.
 #
 # `enter` is in the list because of the arcade, where it is one of the two
 # ways to work the toy you are looking at and the only one that can be filmed.
@@ -121,7 +124,7 @@ ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
 chain	1.5	8	3.4	1 tap:right:20:0.035 3
 knot	1	8	4	hold:right:1.6 m 1.2 m 1.0 down 1.2 up
 load	3	15	6	1.5 m 1.5 up 1.5 up 1.5 up 2
-arcade	3	20	3.2	hold:w:4.43 hold:left:0.655 hold:w:1.51 hold:right:0.41 hold:w:0.6 hold:right:0.28 hold:down:0.3 enter hold:up:0.3 hold:s:0.25 hold:left:0.69 1.3 hold:w:1.1 hold:right:0.655 hold:w:0.9 hold:left:0.655 hold:w:1.95 hold:right:0.655 hold:d:1.0
+arcade	3	20	3.2	hold:w:4.43 hold:left:0.655 hold:w:1.51 hold:right:0.41 hold:w:0.6 hold:right:0.28 hold:down:0.3 enter hold:up:0.3 hold:s:0.25 hold:left:0.69 1.3 hold:w:1.12 hold:right:0.655 hold:w:0.9 hold:left:0.655 hold:w:1.95 hold:right:0.655 hold:d:1.0
 LIST
 )
 
