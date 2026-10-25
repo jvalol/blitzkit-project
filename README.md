@@ -5,6 +5,8 @@ A graphics engine built in Rust.
 It's on crates.io and anyone, including you, can build with it. Add it to a
 project and you get a window, a renderer and a physics step. The basics, basically. After that it's up to you. Be creative!
 
+I hand built this engine, and I built my versions of pong and snake using it. After those two I started working with AI to take it further. Most of the 3d mechanics were already there. (Thanks past me)
+
 ```
 cargo add blitzkit
 ```
