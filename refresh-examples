@@ -73,18 +73,42 @@ PREROLL=${PREROLL:-2}
 # shows is a desk that houses somebody, a corridor where the move happens,
 # and the same rooms laid out so you cannot walk to them.
 #
+# **The panel is last, and everything that follows it is swallowed.** Spec
+# 0039 hung a Mandelbrot panel on the gallery's end wall, and while the sight
+# is on it all four arrows go into the panel instead of turning you. The
+# sight reaches four metres and the panel is 2.6 wide, so near the end of the
+# gallery a turn does not happen at all. The route used to meet the panel on
+# its way to the hotel: every turn after that was eaten, the camera walked
+# into the wall, and the last nine seconds of the clip that shipped on the
+# 26th of October are a fractal with a window pressed against it. It never
+# reached the hotel the comment above says it walks to.
+#
+# So the walk leaves the gallery's centre line before it comes within four
+# metres of the panel, every turn in the lobby points away from it, and the
+# panel is where the clip stops rather than something it passes. The last two
+# keys are the only ones meant to be swallowed. The sidestep brings the panel
+# to the middle of the view, and the up arrow after it pans the set a little
+# so that it reads as something live rather than a picture on a wall.
+#
+# **It pans and does not dive**, which is the one thing about the panel this
+# cannot film. Zooming is shift and an arrow, and there is no way to hold
+# shift from here, so the clip rests on the set instead. A long pan is worse
+# than none: 1.5 seconds of it put the set in a corner of the frame and left
+# the rest a gradient, so it is 0.4 and then stillness.
+#
 # It is walked rather than run because there is no way to hold shift here, and
 # that is no loss: running past a building is how you miss it.
 #
 # **Thirty seconds, and not because the walk takes that long.** It is
-# twenty two seconds of holds. The difference is in two places and neither is guessable from the
-# table, so it is written down here:
+# nineteen seconds of holds. The difference is in two places and
+# neither is guessable from the table, so it is written down here:
 #
 #   3.6s before the first key, which is the camera opening, the window
 #   lookup, the call to bring it to the front, and the settle above.
 #
 #   0.3s after every key, which is `play`'s own margin and the process it
-#   spawns. Sixteen steps of that is five seconds.
+#   spawns. Nineteen keys of that is under six seconds. A bare wait is a
+#   plain sleep and costs nothing on top of itself.
 #
 # Twenty was tried first and the walk ran off the end: it reached the
 # corridor and never got to the room it was staged for. That clip was filmed
@@ -97,9 +121,11 @@ PREROLL=${PREROLL:-2}
 # before anybody edits these numbers. The wave of guests runs west at six
 # rooms a second, so it must be watched from the lobby: walk after it and it
 # is forty metres ahead of you down an empty corridor. And the turns into the
-# long hall have to be square: a quarter turn out of 1.6 radians is 1.32
-# seconds and not one, and getting it wrong walks the hall at forty degrees
-# to its own axis, scraping a wall for nine seconds.
+# long hall have to be square: the arrows turn at 2.4 radians a second, so a
+# quarter turn is 0.655 seconds and a half turn is 1.31, and getting it wrong
+# walks the hall at forty degrees to its own axis, scraping a wall for nine
+# seconds. This used to read 1.6 radians and call 1.32 a quarter turn, which
+# is the tilt rate and a half turn.
 #
 # `enter` is in the list because of the arcade, where it is one of the two
 # ways to work the toy you are looking at and the only one that can be filmed.
@@ -143,7 +169,7 @@ ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
 chain	1.5	8	3.4	1 tap:right:20:0.035 3
 knot	1	8	4	hold:right:1.6 m 1.2 m 1.0 down 1.2 up
 load	3	15	6	1.5 m 1.5 up 1.5 up 1.5 up 2
-arcade	2.5	30	3.2	hold:w:4.43 hold:left:0.655 hold:w:1.51 hold:right:0.41 hold:w:0.6 hold:right:0.28 hold:down:0.3 enter hold:up:0.3 hold:s:0.25 hold:left:0.69 1.3 hold:right:1.32 hold:w:0.62 hold:left:0.655 hold:w:9.0
+arcade	2.5	30	3.2	hold:w:3.10 hold:left:0.22 hold:w:1.60 hold:left:0.44 hold:w:0.96 hold:right:0.655 1.0 hold:left:0.655 hold:w:0.62 hold:right:0.655 hold:down:0.30 enter hold:up:0.30 hold:left:0.655 2.0 hold:left:1.31 hold:w:2.74 hold:left:0.655 hold:w:0.45 hold:a:0.48 hold:up:0.40
 LIST
 )
 
@@ -500,6 +526,25 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   else
     binary="$TARGET/examples/$runs"
     titled="blitzkit: $runs"
+  fi
+
+  # **Asked whether the route still works before anything is filmed.** Spec
+  # 0042. The arcade's panel takes all four arrows while the sight is on it,
+  # so a route that walks past the panel stops turning and keeps holding keys
+  # at a camera that is pointed at a wall. That is what the clip published on
+  # the 26th of October was, and no frame of it looks wrong.
+  #
+  # The game is asked rather than this file knowing the rule, because the rule
+  # is the game's and a copy of it here would be a second account of which
+  # arrows are yours. The route goes the other way for the same reason: it is
+  # written once, in the table above, and handed over.
+  #
+  # Only the arcade, which is the only one with a panel and the only one that
+  # answers this. The rest open a window at anything they do not recognise.
+  if [ "$runs" = arcade ] && ! "$binary" "--walk=$keys"; then
+    say "   the staged route does not turn the camera, so nothing was filmed"
+    missed=$((missed + 1))
+    continue
   fi
 
   # Opened once to find out where its window lands, then closed, because the
