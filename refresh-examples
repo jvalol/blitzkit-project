@@ -545,10 +545,15 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # arrows are yours. The route goes the other way for the same reason: it is
   # written once, in the table above, and handed over.
   #
+  # It answers for the walking too: a held w that covers less than half the
+  # ground it asked for was stopped by something, which is how the hotel's
+  # threshold turned up. It stops you dead on one heading and lets you
+  # through on both of the ones either side of it.
+  #
   # Only the arcade, which is the only one with a panel and the only one that
   # answers this. The rest open a window at anything they do not recognise.
   if [ "$runs" = arcade ] && ! "$binary" "--walk=$keys"; then
-    say "   the staged route does not turn the camera, so nothing was filmed"
+    say "   the staged route does not go where it says, so nothing was filmed"
     missed=$((missed + 1))
     continue
   fi
