@@ -96,6 +96,12 @@ PREROLL=${PREROLL:-2}
 # than none: 1.5 seconds of it put the set in a corner of the frame and left
 # the rest a gradient, so it is 0.4 and then stillness.
 #
+# **The about-turn in the lobby goes right.** Left and right leave you facing
+# the same way and the difference is the half circle you sweep getting there.
+# Left sweeps the lobby's south wall, which is panelling and nothing else, so
+# the middle of the clip was a second and a half of a blank brown rectangle.
+# Right sweeps the desk, the slots behind it and whoever is standing at it.
+#
 # It is walked rather than run because there is no way to hold shift here, and
 # that is no loss: running past a building is how you miss it.
 #
@@ -169,7 +175,7 @@ ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
 chain	1.5	8	3.4	1 tap:right:20:0.035 3
 knot	1	8	4	hold:right:1.6 m 1.2 m 1.0 down 1.2 up
 load	3	15	6	1.5 m 1.5 up 1.5 up 1.5 up 2
-arcade	2.5	30	3.2	hold:w:3.10 hold:left:0.22 hold:w:1.60 hold:left:0.44 hold:w:0.96 hold:right:0.655 1.0 hold:left:0.655 hold:w:0.62 hold:right:0.655 hold:down:0.30 enter hold:up:0.30 hold:left:0.655 2.0 hold:left:1.31 hold:w:2.74 hold:left:0.655 hold:w:0.45 hold:a:0.48 hold:up:0.40
+arcade	2.5	30	3.2	hold:w:3.10 hold:left:0.22 hold:w:1.60 hold:left:0.44 hold:w:0.96 hold:right:0.655 1.0 hold:left:0.655 hold:w:0.62 hold:right:0.655 hold:down:0.30 enter hold:up:0.30 hold:left:0.655 2.0 hold:right:1.31 hold:w:2.74 hold:left:0.655 hold:w:0.45 hold:a:0.48 hold:up:0.40
 LIST
 )
 
