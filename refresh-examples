@@ -172,7 +172,7 @@ sierpinski	1	7	5	1.5 up 2 up 2 down
 menger	1	7	5	1.5 up 2.5 down
 hilbert	1	7	5	1.5 up 2.5 down
 ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
-chain	1.5	8	3.4	1 tap:right:20:0.035 3
+chain	1.5	8	7.4	1 tap:right:20:0.035 3
 knot	1	8	4	hold:right:1.6 m 1.2 m 1.0 down 1.2 up
 load	3	15	6	1.5 m 1.5 up 1.5 up 1.5 up 2
 arcade	2.5	30	3.2	hold:w:3.10 hold:left:0.22 hold:w:1.60 hold:left:0.44 hold:w:0.96 hold:right:0.655 1.0 hold:left:0.655 hold:w:0.62 hold:right:0.655 hold:down:0.30 enter hold:up:0.30 hold:left:0.655 2.0 hold:right:1.31 hold:w:2.74 hold:left:0.655 hold:w:0.45 hold:a:0.48 hold:up:0.40
@@ -364,6 +364,24 @@ Thread.sleep(forTimeInterval: held)
 CGEvent(mouseEventSource: src, mouseType: .leftMouseUp, mouseCursorPosition: at, mouseButton: .left)?.post(tap: .cghidEventTap)
 SWIFT
   swift_run shove "$at_x" "$at_y" "$held" >/dev/null 2>&1 || true
+}
+
+# Put the pointer out of the frame before the camera opens.
+#
+# The recording below asks for no cursor and this macOS draws one anyway, and
+# the pointer stays wherever the last example's shove left it: rolling's still
+# came out on 2026-10-28 with an arrow sitting in the middle of its tray. The
+# top left corner of the screen is above every window's content, so no crop
+# reaches it. An example that shoves or turns the wheel puts the pointer back
+# into its own frame, which is the example working and is meant to be seen.
+park() {
+  put_swift park <<'SWIFT'
+import CoreGraphics
+let src = CGEventSource(stateID: .hidSystemState)
+CGEvent(mouseEventSource: src, mouseType: .mouseMoved,
+        mouseCursorPosition: CGPoint(x: 2, y: 2), mouseButton: .left)?.post(tap: .cghidEventTap)
+SWIFT
+  swift_run park >/dev/null 2>&1 || true
 }
 
 # Turn the wheel over the middle of the window.
@@ -595,6 +613,7 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # recorded fast and rough, then cut and encoded properly. One pass cannot
   # do it: the front of the recording is the desktop behind the window, and
   # trimming that off a file still being written is not a thing.
+  park
   raw=$(mktemp -t "$name").mp4
   ffmpeg -nostdin -hide_banner -loglevel error -f avfoundation -capture_cursor 0 \
     -framerate "$RATE" -i "3" -t "$((seconds + PREROLL))" \
@@ -642,6 +661,14 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # with the ball swung back up out of frame, which is a picture of the
   # aftermath and not of a wrecking ball. Not the first frame either, which
   # for a thing about to happen is a picture of nothing happening.
+  #
+  # Pick a second the picture holds across a whole swing rather than one that
+  # catches an instant. chain's was 3.4, a few tenths before the ball struck,
+  # and on 2026-10-28 a take ran the strike late and the still came out as a
+  # wall nobody had touched. It is 7.4 now: the ball is down at the bottom of
+  # its arc and the wall is in pieces, which stays true however the swing
+  # drifts. Where the clip is a thing happening once, the poster wants the
+  # state it leaves behind, not the frame it happens in.
   ffmpeg -nostdin -hide_banner -loglevel error -ss "${poster:-1}" \
     -i "$OUT/$name.mp4" -vframes 1 "$OUT/$name.png" -y >/dev/null 2>&1 </dev/null
 
