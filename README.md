@@ -41,33 +41,21 @@ Each game is its own repo. Many have corresponding examples in `blitzkit`.
 
 ## Getting set up
 
-To build on the engine `cargo add blitzkit`.
-
-Clone this repo.
+Run it yourself
 
 ```
 git clone https://github.com/jvalol/blitzkit-project.git
-cd blitzkit-project
-git clone https://github.com/jvalol/blitzkit.git
-git clone https://github.com/jvalol/arcade.git
-mkdir -p games && cd games
-git clone https://github.com/jvalol/pong.git
-git clone https://github.com/jvalol/snake.git
-git clone https://github.com/jvalol/tessera.git
-git clone https://github.com/jvalol/marble.git
-git clone https://github.com/jvalol/slider.git
-git clone https://github.com/jvalol/starry.git
-git clone https://github.com/jvalol/lantern.git
-git clone https://github.com/jvalol/securitysweep.git
-git clone https://github.com/jvalol/carom.git
-git clone https://github.com/jvalol/poolhall.git
-git clone https://github.com/jvalol/cairn.git
-git clone https://github.com/jvalol/cascada.git
-git clone https://github.com/jvalol/monty.git
-cd .. && ./check-all
+cd blitzkit-project && ./play
 ```
 
-Rust 1.87 or newer.
+`./play` installs Rust if it is not there, after asking first, clones the
+engine and every game, builds them, and walks you into the arcade. The clones
+are shallow, so it is about a hundred megabytes rather than seven hundred, and
+`git fetch --unshallow` in any of them gets the history back. On Linux it
+names the packages the machine needs and leaves those to you, since they want
+sudo.
+
+To build on the engine instead, `cargo add blitzkit`. Rust 1.87 or newer.
 
 `./check-all` tests and lints every crate in dependency order, then runs
 `./check-tunnel`.

@@ -21,6 +21,7 @@
 !/stamp
 !/check-fresh
 !/release
+!/play
 !/.cargo
 
 # The skills that say how to work on these repos, which tie the project

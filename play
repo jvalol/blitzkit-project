@@ -1,0 +1,163 @@
+#!/usr/bin/env bash
+# Everything between a bare machine and standing in the arcade: Rust, the
+# fifteen repos, a build, and the room.
+#
+# The arcade runs each game's own binary from beside its own, so a checkout
+# with no games in it is a hall of cabinets that cannot be played. That is
+# four lines in the readme and fifteen `git clone`s by hand, and anybody who
+# mistypes one gets a dark cabinet rather than an error. This does the lot.
+#
+# **The list of repos comes from the readme**, not from an array here. Every
+# game is already written about there with its clone url, check-listings
+# refuses a game that is not, and a second list in this file would be the
+# drift this project keeps writing down.
+#
+# Rust is installed by rustup's own installer, after asking. What a package
+# manager has to put on a Linux box cannot be installed without sudo, so that
+# is named and left to you.
+#
+# Usage: ./play
+
+set -uo pipefail
+cd "$(dirname "$0")" || exit 1
+
+# rustup writes this and adds it to your shell profile, which does nothing for
+# the shell already running. A machine that installed Rust a minute ago and a
+# machine that has had it for years both end up here.
+rust_on_path() {
+  command -v cargo >/dev/null 2>&1 && return 0
+  # shellcheck disable=SC1091
+  [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+  command -v cargo >/dev/null 2>&1
+}
+
+echo "== rust"
+
+if rust_on_path; then
+  echo "  $(rustc --version)"
+else
+  echo "  no cargo on this machine"
+  echo "  rustup.rs is how Rust is installed. This runs:"
+  echo "    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
+
+  if [ ! -t 0 ]; then
+    echo "  nothing is answering, so run that line yourself and start again"
+    exit 1
+  fi
+
+  read -r -p "  install it? [y/N] " yes
+  case "$yes" in
+    y | Y | yes | Yes) ;;
+    *)
+      echo "  left alone"
+      exit 1
+      ;;
+  esac
+
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y || exit 1
+
+  if ! rust_on_path; then
+    echo "  rustup finished and cargo is still not on the path"
+    exit 1
+  fi
+fi
+
+# The engine says 1.87 in every Cargo.toml, and cargo's own refusal names the
+# crate rather than the fix, which sends people looking in the wrong place.
+need=1.87.0
+have=$(rustc --version | cut -d' ' -f2)
+
+if [ "$(printf '%s\n%s\n' "$need" "$have" | sort -V | head -1)" != "$need" ]; then
+  echo "  this is $have and the engine needs $need"
+
+  if command -v rustup >/dev/null 2>&1; then
+    rustup update stable || exit 1
+  else
+    echo "  update it however it was installed, then start again"
+    exit 1
+  fi
+fi
+
+echo "== what the system has to have"
+
+case "$(uname -s)" in
+  Darwin)
+    if ! xcode-select -p >/dev/null 2>&1; then
+      echo "  the command line tools are missing. Run:"
+      echo "    xcode-select --install"
+      exit 1
+    fi
+    echo "  the command line tools are here, which is all a Mac needs"
+    ;;
+  Linux)
+    # Read off the dependency tree rather than off a machine: rodio wants
+    # ALSA, winit wants xkbcommon and whichever of X11 and Wayland you run,
+    # and wgpu wants a Vulkan loader and a driver under it. Untested on Linux,
+    # which is why it is printed rather than run.
+    echo "  a Linux box needs these, and none of it can be installed without sudo:"
+    if command -v apt >/dev/null 2>&1; then
+      echo "    sudo apt install build-essential pkg-config libasound2-dev \\"
+      echo "      libxkbcommon-dev libwayland-dev libx11-dev mesa-vulkan-drivers"
+    elif command -v dnf >/dev/null 2>&1; then
+      echo "    sudo dnf install gcc pkgconf alsa-lib-devel libxkbcommon-devel \\"
+      echo "      wayland-devel libX11-devel mesa-vulkan-drivers"
+    elif command -v pacman >/dev/null 2>&1; then
+      echo "    sudo pacman -S base-devel pkgconf alsa-lib libxkbcommon wayland \\"
+      echo "      libx11 vulkan-icd-loader"
+    else
+      echo "    a compiler, pkg-config, ALSA, xkbcommon, Wayland or X11, and a"
+      echo "    Vulkan loader with a driver for your card"
+    fi
+    echo "  carrying on. If the build stops on a missing header, it is one of those."
+    ;;
+  *)
+    echo "  $(uname -s) is not one this has been run on. Carrying on."
+    ;;
+esac
+
+echo "== the repos"
+
+mkdir -p games
+
+# Every jvalol repo the readme links to, which is the engine, the arcade and
+# the games. This folder is in there too, as the thing you already cloned.
+for name in $(grep -oE 'https://github\.com/jvalol/[a-z0-9-]+' README.md |
+  sed 's|.*/||' | sort -u); do
+  case "$name" in
+    blitzkit-project) continue ;;
+    blitzkit | arcade) at=$name ;;
+    *) at=games/$name ;;
+  esac
+
+  if [ -d "$at/.git" ]; then
+    echo "  $at is already here"
+    continue
+  fi
+
+  echo "  cloning $name into $at"
+  # A shallow clone, because the engine's own history is 672 megabytes and
+  # none of it is needed to walk into a room. `git fetch --unshallow` in any
+  # of these gets the rest, and nothing in this project reads further back
+  # than the commit it is standing on.
+  if ! git clone --quiet --depth 1 "https://github.com/jvalol/$name.git" "$at"; then
+    echo "  that clone failed, so the arcade would be missing $name"
+    exit 1
+  fi
+done
+
+echo "== building, which is the long part"
+
+# ./list-repos reads the disk, so what was just cloned is what gets built, in
+# the order the engine comes first. A game that is not built is a cabinet with
+# nothing behind it: the arcade runs each binary from beside its own.
+while read -r at; do
+  echo "  $at"
+  if ! (cd "$at" && cargo build --release --quiet); then
+    echo "  $at did not build"
+    exit 1
+  fi
+done < <(./list-repos)
+
+echo "== the arcade"
+cd arcade || exit 1
+exec cargo run --release --quiet

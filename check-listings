@@ -71,6 +71,14 @@ while read -r repo; do
     echo "  $site never shows $repo's screenshot"
     missing=$((missing + 1))
   fi
+
+  # ./play clones what the project readme links to rather than keeping a list
+  # of its own, so a game written about there without its url is a game nobody
+  # gets and a cabinet that stays dark.
+  if ! grep -q "https://github.com/jvalol/$repo" README.md; then
+    echo "  README.md never gives $repo's clone url, so ./play cannot fetch it"
+    missing=$((missing + 1))
+  fi
 done < <(./list-repos games)
 
 # Every key an example binds, said on the page that teaches that example.
