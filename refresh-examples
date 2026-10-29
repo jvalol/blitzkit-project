@@ -54,89 +54,121 @@ PREROLL=${PREROLL:-2}
 #
 # The keys are what somebody would press while watching, sent once the camera
 # is running. A key is a letter, `space`, `enter`, or an arrow as
-# `left`/`right`/`up`/`down`; `hold:<key>:<seconds>` holds one down;
+# `left`/`right`/`up`/`down`; `hold:<key>:<seconds>` holds one down, and the
+# key may be several joined by a plus, as `hold:w+left:0.8`, which holds them
+# together and is how a corner is walked rather than pivoted on; `pin:` is the
+# same thing for a walk meant to end against a wall, which the check lets
+# through rather than calling stopped;
 # `tap:<key>:<many>:<gap>` hits it over and over;
 # `shove:<across>:<down>:<held>` presses the mouse at that fraction of the
 # window for that long; `zoom:<ticks>` turns the wheel over the middle of it;
 # and a number on its own is a wait in seconds.
 #
-# **The arcade's line walks to the hotel and its two corridors.** It used to
-# walk into the hall and turn to look at the cabinets, which was right when
-# the hall was all there was. The building has a hotel with a corridor of
-# numbered doors, people who move rooms when the desk takes somebody, a
-# register behind the one door with no number, and a second corridor off the
-# same lobby where the doors are at Fibonacci metres.
+# **The arcade's line walks four rooms.** It used to walk into the hall and
+# turn to look at the cabinets, which was right when the hall was all there
+# was. Then it walked to the hotel. Then up to the imaginarium. Jake's call,
+# 2026-10-29: the arcade, the garden, the pool room and the solarium.
 #
-# **The register is not in it.** It was, and the clip cannot hold everything:
-# the hotel's two corridors are one idea and the register is a second, and a
-# clip that visits both is a tour rather than a demonstration. What this
-# shows is a desk that houses somebody, a corridor where the move happens,
-# and the same rooms laid out so you cannot walk to them.
+# The order is the building's and not a preference. The garden's way in and
+# the hole into the solarium are both within two metres of where you start, so
+# they come first and cost one walk between them. The hall runs the length of
+# the building and is walked once, end to end. The baths are at the far end of
+# it, down through the nook's bookcase, so they are last and the clip finishes
+# standing in the pool.
 #
-# **The panel is last, and everything that follows it is swallowed.** Spec
-# 0039 hung a Mandelbrot panel on the gallery's end wall, and while the sight
-# is on it all four arrows go into the panel instead of turning you. The
-# sight reaches four metres and the panel is 2.6 wide, so near the end of the
-# gallery a turn does not happen at all. The route used to meet the panel on
-# its way to the hotel: every turn after that was eaten, the camera walked
-# into the wall, and the last nine seconds of the clip that shipped on the
-# 26th of October are a fractal with a window pressed against it. It never
-# reached the hotel the comment above says it walks to.
+# **Two doors open on camera, and both of them are the point of their room.**
+# The bookcase is spec 0007's secret: pull the book, four hundred of them
+# swing out of the way, and the stair down is behind it. The baths' leaf is
+# spec 0008's. Spec 0042's checker could not replay either until this route
+# needed them, and said so in as many words.
 #
-# So the walk leaves the gallery's centre line before it comes within four
-# metres of the panel, every turn in the lobby points away from it, and the
-# panel is where the clip stops rather than something it passes. The last two
-# keys are the only ones meant to be swallowed. The sidestep brings the panel
-# to the middle of the view, and the up arrow after it pans the set a little
-# so that it reads as something live rather than a picture on a wall.
+# **It never stops to turn at a corner.** Every corner is a `hold:w+left` or a
+# `hold:w+right`, walking and turning at once, which draws an arc. Jake watched
+# a route that pivoted and said it felt robotic, which it was. A quarter turn
+# at a walk sweeps about 1.3 metres across and 2.1 along, so a corner starts
+# two metres before its opening rather than at it.
 #
-# **It pans and does not dive**, which is the one thing about the panel this
-# cannot film. Zooming is shift and an arrow, and there is no way to hold
-# shift from here, so the clip rests on the set instead. A long pan is worse
-# than none: 1.5 seconds of it put the set in a corner of the frame and left
-# the rest a gradient, so it is 0.4 and then stillness.
+# **It does stand still in the two dead ends, on purpose and not for the
+# look.** The garden and the solarium are rooms you go into and come back out
+# of, and the first version curved through both of them. The solarium's curve
+# is what killed the first take: a loop across a vast dark room, a turn in the
+# middle of it and a hole a metre or so wide to thread on the way back is dead
+# reckoning with nothing to steer by, and the clip went in at twenty seconds
+# and never came out. Thirty seconds of black.
 #
-# **The about-turn in the lobby goes right.** Left and right leave you facing
-# the same way and the difference is the half circle you sweep getting there.
-# Left sweeps the lobby's south wall, which is panelling and nothing else, so
-# the middle of the clip was a second and a half of a blank brown rectangle.
-# Right sweeps the desk, the slots behind it and whoever is standing at it.
+# Walk in straight, stand, turn on the spot to look, and walk straight back out
+# and the error cancels: the way out is the way in and the standing turns move
+# you nowhere. The same goes for the garden. A person stopping to look at a
+# pond is also what a person does, so nothing is lost but a curve nobody would
+# have noticed.
 #
-# It is walked rather than run because there is no way to hold shift here, and
-# that is no loss: running past a building is how you miss it.
+# **Both tight targets square up on a wall rather than aiming at them.** The
+# bookcase and the door to the baths were both approached by dead reckoning
+# first. Both worked in the checker and neither worked twice running on the
+# machine: twenty metres of hall put the sight one bookcase along from the one
+# that opens, and a couple of degrees of heading is the whole of the baths'
+# doorway. A `pin:` walks into the wall on purpose, which fixes the coordinate
+# the error was in, and a short strafe off it lands where it should. Use the
+# building as the datum wherever a target is tight.
 #
-# **Thirty seconds, and not because the walk takes that long.** It is
-# nineteen seconds of holds. The difference is in two places and
-# neither is guessable from the table, so it is written down here:
+# **The climb and the descent are slower than the ground, by about half.**
+# Spec 0004's budget empties as you go. That is why the walk down into the
+# cellar is held for two seconds rather than the one the distance asks for.
+#
+# **The aim at the bookcase used to be a coin flip.** Its handle was the one
+# book, 8.6 centimetres across, and driving a route at it the window was a
+# single seven centimetre step: on it the sight found the book, a step either
+# side it found nothing, and the clip either opened the wall or walked into
+# it. Spec 0007 widened the handle to the case it stands in on 2026-10-29 and
+# the window is a metre now. Do not narrow it again without reading that spec.
+#
+# **Fifty seconds, and not because the walk takes that long.** It is thirty
+# five seconds of holds. The difference is in two places and neither is
+# guessable from the table, so it is written down here:
 #
 #   3.6s before the first key, which is the camera opening, the window
 #   lookup, the call to bring it to the front, and the settle above.
 #
-#   0.3s after every key, which is `play`'s own margin and the process it
-#   spawns. Nineteen keys of that is under six seconds. A bare wait is a
-#   plain sleep and costs nothing on top of itself.
+#   0.4s after every key, which is `play`'s own margin and the process it
+#   spawns. Twenty eight keys of that is eleven. A bare wait is a plain sleep
+#   and costs nothing on top of itself.
 #
-# Twenty was tried first and the walk ran off the end: it reached the
-# corridor and never got to the room it was staged for. That clip was filmed
-# and looked at before anybody noticed, which is what the line at the bottom
-# of this file is for.
+# Twenty was tried on a much older route and the walk ran off the end: it
+# reached the corridor and never got to the room it was staged for. That clip
+# was filmed and looked at before anybody noticed, which is what the line at
+# the bottom of this file is for.
 #
-# The route was not guessed. It was driven against the game's own `walk` and
-# its own colliders, a frame at a time, reading what the long hall says at
-# every step until the numbers came apart. Two things it found are worth knowing
-# before anybody edits these numbers. The wave of guests runs west at six
-# rooms a second, so it must be watched from the lobby: walk after it and it
-# is forty metres ahead of you down an empty corridor. And the turns into the
-# long hall have to be square: the arrows turn at 2.4 radians a second, so a
+# The route was not guessed. It was driven against the game's own `--walk`,
+# which replays it with no window and refuses one whose turns do not happen or
+# whose walks go nowhere. Three things it found are worth knowing before
+# anybody edits these numbers.
+#
+# The turns have to be square: the arrows turn at 2.4 radians a second, so a
 # quarter turn is 0.655 seconds and a half turn is 1.31, and getting it wrong
-# walks the hall at forty degrees to its own axis, scraping a wall for nine
+# walks a room at forty degrees to its own axis, scraping a wall for nine
 # seconds. This used to read 1.6 radians and call 1.32 a quarter turn, which
-# is the tilt rate and a half turn.
+# is the tilt rate and a half turn. Spec 0044 rounded the corners of a turn
+# and did not change this: the ramps are symmetric, so a hold still sweeps
+# what it always swept, held alone or held with a walk.
 #
+# A hold shorter than the arcade's `AIM_LAGS`, which is 0.2 seconds, sweeps
+# less than it asks for and the checker calls it swallowed. That is not a
+# fault in the route and it is not a fault in the check: a winding that never
+# reaches full speed has no flat middle to make the loss back on. Write turns
+# and tilts at a quarter of a second or more.
+#
+# The way into the nook is one gap at the south end of the hall, between the
+# last cabinet and the nearest plinth. Turn west anywhere from z -6.5 to -7.4
+# and you go through it; a stride either side of that and you walk into a
+# cabinet.
+
 # `enter` is in the list because of the arcade, where it is one of the two
 # ways to work the toy you are looking at and the only one that can be filmed.
 # That building holds the cursor, so the mouse turns the view rather than
-# pointing at anything, and a `shove` would land as a shove of the camera.
+# pointing at anything, and a `shove` would land as a shove of the camera. The
+# arcade's route does not press it any more, having stopped going to the desk,
+# and it stays in the grammar because the next route to go anywhere with a
+# handle on it will want it.
 #
 # Digits are not in that list and cannot be. `1` and `2` pick cork or granite
 # in ripple and neither reaches the window, sent as `keystroke "2"` or as its
@@ -175,7 +207,7 @@ ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
 chain	1.5	8	7.4	1 tap:right:20:0.035 3
 knot	1	8	4	hold:right:1.6 m 1.2 m 1.0 down 1.2 up
 load	3	15	6	1.5 m 1.5 up 1.5 up 1.5 up 2
-arcade	2.5	30	3.2	hold:w:3.10 hold:left:0.22 hold:w:1.60 hold:left:0.44 hold:w:0.96 hold:right:0.655 1.0 hold:left:0.655 hold:w:0.62 hold:right:0.655 hold:down:0.30 enter hold:up:0.30 hold:left:0.655 2.0 hold:right:1.31 hold:w:2.74 hold:left:0.655 hold:w:0.45 hold:a:0.48 hold:up:0.40
+arcade	2.5	48	23	hold:left:0.655 hold:w:2.4 hold:left:0.5 0.8 hold:right:1.81 hold:w:2.11 hold:right:0.655 hold:w:2.2 0.8 hold:left:0.6 0.8 hold:left:0.71 hold:w:5.2 hold:w+left:0.655 hold:w:1.6 pin:d:0.6 hold:a:0.56 enter 1.4 hold:w:2.0 pin:w:0.9 hold:left:0.655 pin:w:1.4 hold:d:0.27 enter 1.3 hold:w:2.2 hold:right:0.5 1.5
 LIST
 )
 
@@ -416,22 +448,45 @@ SWIFT
   swift_run wheel "$at_x" "$at_y" "$ticks" >/dev/null 2>&1 || true
 }
 
+# Holds one key, or several at once joined by a plus, for that long.
+#
+# **Several at once is what walks a corner.** A route that stops, pivots and
+# sets off again reads as a machine however smooth the pivot is, which is what
+# Jake said after watching the arcade turn with spec 0044's easing in it. The
+# building turns you with the arrows and walks you with w, both off held keys,
+# so `hold:w+left:0.8` is a walk that curves. Down in the order given and up
+# in the other, which is how a hand comes off two keys.
 hold() {
-  local code
-  code=$(key_code "$1")
-  [ -n "$code" ] || { say "   no key code for $1"; return; }
+  local codes=() code key
+  local old=$IFS
+  IFS='+'
+  # shellcheck disable=SC2206
+  local keys=($1)
+  IFS=$old
+
+  for key in "${keys[@]}"; do
+    code=$(key_code "$key")
+    [ -n "$code" ] || { say "   no key code for $key"; return; }
+    codes+=("$code")
+  done
 
   put_swift hold <<'SWIFT'
 import CoreGraphics
 import Foundation
-let args = CommandLine.arguments.dropFirst()
-guard let code = UInt16(args.first ?? ""), let secs = Double(args.dropFirst().first ?? "") else { exit(1) }
+let args = Array(CommandLine.arguments.dropFirst())
+guard let secs = Double(args.last ?? "") else { exit(1) }
+let codes = args.dropLast().compactMap { UInt16($0) }
+guard !codes.isEmpty else { exit(1) }
 let src = CGEventSource(stateID: .hidSystemState)
-CGEvent(keyboardEventSource: src, virtualKey: CGKeyCode(code), keyDown: true)?.post(tap: .cghidEventTap)
+for code in codes {
+    CGEvent(keyboardEventSource: src, virtualKey: CGKeyCode(code), keyDown: true)?.post(tap: .cghidEventTap)
+}
 Thread.sleep(forTimeInterval: secs)
-CGEvent(keyboardEventSource: src, virtualKey: CGKeyCode(code), keyDown: false)?.post(tap: .cghidEventTap)
+for code in codes.reversed() {
+    CGEvent(keyboardEventSource: src, virtualKey: CGKeyCode(code), keyDown: false)?.post(tap: .cghidEventTap)
+}
 SWIFT
-  swift_run hold "$code" "$2" >/dev/null 2>&1 || true
+  swift_run hold "${codes[@]}" "$2" >/dev/null 2>&1 || true
 }
 
 press() {
@@ -457,6 +512,27 @@ press() {
 # pool instead of four and its title bar grey in the picture, because the
 # window had stopped being frontmost partway and the rest of the keys went
 # somewhere else.
+#
+# **The gap between two keys is what spec 0044's winding off runs in.** The
+# arcade eases its arrows on and off over `AIM_LAGS`, which is 0.2 seconds,
+# and a hold only sweeps what it asks for if that winding off finishes before
+# the next key goes down.
+#
+# The gap is this sleep, the `front` above it, and the spawning and exiting of
+# the process that posts the key: about four tenths a key, measured off a
+# clip rather than reasoned about. That is comfortably over 0.2.
+#
+# It is also a soft edge rather than a sharp one, which is worth knowing
+# before anybody tunes either number. Smoothstep reaches nought with no slope,
+# so the last of the winding off is where the view is barely moving: cutting
+# the final twentieth of it costs about a thousandth of the turn. This gets
+# dangerous when the gap is less than half of `AIM_LAGS`, not when it is a
+# hair under.
+#
+# Do not raise this sleep to buy room. It is every example's gap, and two of
+# them have a tenth of a second of slack in their film: teapot-glass runs 8.9
+# seconds of keys inside 9, and rolling 10.3 inside 11. Raising it means
+# widening those films in the same change.
 play() {
   local pid=$1
   shift
@@ -464,7 +540,7 @@ play() {
   for key in "$@"; do
     case "$key" in
       [0-9]*) sleep "$key" ;;
-      hold:*)
+      hold:*|pin:*)
         front "$pid"
         sleep 0.15
         hold "$(echo "$key" | cut -d: -f2)" "$(echo "$key" | cut -d: -f3)"
@@ -637,6 +713,14 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   sleep "$settle"
   # shellcheck disable=SC2086
   [ -n "${keys:-}" ] && play "$running" $keys
+
+  # **And fronted once more, for the tail.** `play` fronts the window before
+  # every key and then stops, so from the last key to the end of the film
+  # nothing is holding it up. Whatever comes forward in that gap is filmed
+  # instead, cropped to the window's own rectangle: the arcade's clip ended on
+  # two seconds of the chat window it was being written in. The longer the
+  # rest at the end of a route, the wider that hole.
+  front "$running"
 
   wait "$filming" 2>/dev/null || true
   stop "$running"
