@@ -116,6 +116,20 @@ for i in $(seq 1 12); do
 done
 ```
 
+**A thing that moves, in only one of its two states.** Anything with a
+state that changes what the building looks like has to be put in two
+lists: the colliders and the picture. They are different code in different
+files and nothing checks that they agree. The imaginarium's trapdoor went
+in with colliders and no drawing, so open and shut were the same grey tray
+and the only thing that changed was what you could walk on. Every test
+passed, the room was photographed from four places, and it took a fifth
+picture of the two states side by side to see it.
+
+So when you add state, shoot both states from one spot and hold the
+pictures against each other. Not one picture of the new thing: two, and the
+same camera. A thing you can only see in one of its states is a thing that
+is not drawn.
+
 ## Prefer a test to an eye
 
 Most of the list above is arithmetic and belongs in a test, where it holds
