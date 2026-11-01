@@ -80,20 +80,57 @@ PREROLL=${PREROLL:-2}
 # with the climb between the visits and the clip finishes standing in the
 # pool.
 #
-# **Three doors are worked on camera, and each of them is the point of its
-# room.** The bookcase is spec 0007's secret: pull the book, four hundred of
-# them swing out of the way, and the stair down is behind it. The baths' leaf
-# is spec 0008's. The imaginarium's is spec 0038's trapdoor, the one of its
-# three second doors that is cut in the floor you are standing on: the hole
-# is open when you get there, and working it slides the leaf up flush with
-# your own ground. Spec 0042's checker could not replay any of them until a
-# route needed them, and said so in as many words.
+# **Two doors are worked on camera and two are walked through.** The
+# bookcase is spec 0007's secret: pull the book, four hundred of them swing
+# out of the way, and the stair down is behind it. The baths' leaf is spec
+# 0008's. Spec 0042's checker could not replay either until a route needed
+# them, and said so in as many words.
+#
+# The imaginarium's two are not worked at all, since specs 0047 and 0048
+# made them ways you take rather than things you press. The route walks
+# into the hatch in the floor and the room turns it over on to what was the
+# west wall, crosses frame one's floor, climbs frame one's flight, and goes
+# out of the door at the top, which puts it back in frame nought at the
+# foot of its own stairs. One circuit, both portals, and it comes out where
+# it needs to be for the way down.
+#
+# **A crossing takes no keys, so the route waits through one.** Walking is
+# suspended for the whole of it, which is the only way a scripted turn can
+# be honest, so a `hold:w` held across one covers no ground and spec 0042's
+# checker rightly calls that stopped. The waits after `hold:w:2.0` and
+# `pin:w:3.4` are the two crossings and nothing else.
 #
 # **It never stops to turn at a corner.** Every corner is a `hold:w+left` or a
 # `hold:w+right`, walking and turning at once, which draws an arc. Jake watched
 # a route that pivoted and said it felt robotic, which it was. A quarter turn
 # at a walk sweeps about 1.3 metres across and 2.1 along, so a corner starts
 # two metres before its opening rather than at it.
+#
+# **Both dead ends turn the way the room is.** Jake watched a take on
+# 2026-11-01 and said the garden turns right, which shows the wall, when
+# left would show the garden. He is right and the numbers say so: from
+# where the route stands, the pond is at bearing -167 and the garden's
+# middle at -173, and the about-turn out of the room went right through
+# west, north and east, which is the wall behind and the way back. Left is
+# forty degrees shorter and sweeps across the pond.
+#
+# The solarium was worse. Every one of the eight bodies is at bearing 122
+# to 132 from the door and the route faced 98, so it looked past the lot
+# of them at a wall. It stands at them now and walks six metres in, which
+# is what brings Neptune and its name up: at the door only Triton's label
+# is readable and nothing else in that room is bigger than a tenth of a
+# degree across.
+#
+# **And it backs out rather than turning round.** This file already knew
+# not to curve through that room, because a turn in the middle of a vast
+# dark space is dead reckoning with nothing to steer by, and an about-turn
+# at the far end is the same thing by another name. Driven with the real
+# keys and the game logging where it was, the turn came back seven degrees
+# short, which over seven metres is most of a metre sideways: the walk out
+# landed at x -2.10 instead of -1.43 and the hall walk ran into a cabinet
+# at z 4.23 and stopped there for the remaining seventy seconds. `hold:s`
+# retreats along the line it came in on and the heading never changes, so
+# there is nothing to come back short.
 #
 # **It does stand still in the three dead ends, on purpose and not for the
 # look.** The garden, the solarium and the imaginarium are rooms you go into
@@ -156,15 +193,15 @@ PREROLL=${PREROLL:-2}
 # it. Spec 0007 widened the handle to the case it stands in on 2026-10-29 and
 # the window is a metre now. Do not narrow it again without reading that spec.
 #
-# **Eighty eight seconds, and not because the walk takes that long.** It is
-# sixty two seconds of holds and waits. The difference is in two places and neither is
+# **Ninety two seconds, and not because the walk takes that long.** It is
+# sixty six seconds of holds and waits. The difference is in two places and neither is
 # guessable from the table, so it is written down here:
 #
 #   3.6s before the first key, which is the camera opening, the window
 #   lookup, the call to bring it to the front, and the settle above.
 #
 #   0.4s after every key, which is `play`'s own margin and the process it
-#   spawns. Forty six keys of that is eighteen. A bare wait is a plain sleep
+#   spawns. Forty eight keys of that is nineteen. A bare wait is a plain sleep
 #   and costs nothing on top of itself.
 #
 # Twenty was tried on a much older route and the walk ran off the end: it
@@ -241,7 +278,7 @@ ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
 chain	1.5	8	7.4	1 tap:right:20:0.035 3
 knot	1	8	4	hold:right:1.6 m 1.2 m 1.0 down 1.2 up
 load	3	15	6	1.5 m 1.5 up 1.5 up 1.5 up 2
-arcade	2.5	88	45	hold:left:0.655 hold:w:2.4 hold:left:0.5 0.8 hold:right:1.81 hold:w:2.11 hold:right:0.655 hold:w:2.2 0.8 hold:left:0.6 0.8 hold:left:0.71 hold:w:5.2 hold:w+left:0.655 pin:w:2.6 pin:d:0.6 hold:left:0.655 hold:a:0.98 pin:w:3.6 hold:left:0.655 hold:w:2.3 hold:left:0.655 hold:w:1.0 hold:left:0.35 1.6 hold:w:1.0 hold:down:0.28 0.6 enter 1.2 hold:up:0.28 0.8 hold:right:1.0 hold:w:1.0 hold:right:0.655 pin:w:2.0 hold:right:0.655 pin:w:2.6 hold:right:0.655 hold:w:2.4 hold:left:0.655 hold:w:0.3 pin:d:0.6 hold:a:0.56 enter 1.4 hold:w:2.0 pin:w:0.9 hold:left:0.655 pin:w:1.4 hold:d:0.27 enter 1.3 hold:w:0.55 hold:w+right:0.28 1.5
+arcade	2.5	92	45	hold:left:0.655 hold:w:2.4 hold:left:0.5 0.8 hold:left:0.80 hold:w:2.11 hold:right:0.655 hold:w:2.2 hold:left:0.36 1.2 hold:w:1.6 1.4 hold:s:1.6 hold:left:0.95 hold:w:5.2 hold:w+left:0.655 pin:w:2.6 pin:d:0.6 hold:left:0.655 hold:a:0.98 pin:w:3.6 hold:left:0.655 hold:w:2.3 hold:left:0.655 hold:w:1.0 hold:left:0.35 1.6 hold:w:1.0 hold:down:0.28 0.6 enter 1.2 hold:up:0.28 0.8 hold:right:1.0 hold:w:1.0 hold:right:0.655 pin:w:2.0 hold:right:0.655 pin:w:2.6 hold:right:0.655 hold:w:2.4 hold:left:0.655 hold:w:0.3 pin:d:0.6 hold:a:0.56 enter 1.4 hold:w:2.0 pin:w:0.9 hold:left:0.655 pin:w:1.4 hold:d:0.27 enter 1.3 hold:w:0.55 hold:w+right:0.28 1.5
 LIST
 )
 
@@ -346,6 +383,23 @@ backing() {
 
 front() {
   osascript -e "tell application \"System Events\" to tell (first process whose unix id is $1) to set frontmost to true" >/dev/null 2>&1 || true
+}
+
+# **And whether it actually came forward**, which until 2026-11-01 nothing
+# asked. This records the screen cropped to the window's rectangle, so
+# anything sitting on top of it at those coordinates is what gets filmed,
+# and `play` sends its keys to whatever is frontmost rather than to a
+# window. Run while somebody was using the machine, a whole take came out
+# as ninety four seconds of the chat window it was being written in, and
+# the route's keys, two `enter` presses among them, went into that window
+# instead. It reported `1 made`, because nothing here looks at the picture.
+#
+# macOS will not reliably let a background process hold the front while
+# somebody is typing in another app, and that is the answer rather than a
+# bug: nobody can film this while using the machine. So it is asked, and a
+# run that is not in front is a run that does not happen.
+in_front() {
+  [ "$(osascript -e "tell application \"System Events\" to unix id of first process whose frontmost is true" 2>/dev/null)" = "$1" ]
 }
 
 # What macOS calls each key this knows about. The numbers are where the keys
@@ -744,7 +798,7 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
 
   # the camera takes about a second to open, and the run starts once it has
   sleep 1.2
-  "$binary" >/dev/null 2>&1 </dev/null &
+  "$binary" >/dev/null 2>"${WHERE_LOG:-/dev/null}" </dev/null &
   running=$!
   sleep 0.8
 
@@ -755,6 +809,17 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
 
   front "$running"
   sleep "$settle"
+
+  if ! in_front "$running"; then
+    say "   it is not in front, so the camera and the keys would both go"
+    say "   somewhere else. Nothing was filmed. Leave the machine alone and"
+    say "   run this again."
+    stop "$running"
+    rm -f "$raw"
+    missed=$((missed + 1))
+    continue
+  fi
+
   # shellcheck disable=SC2086
   [ -n "${keys:-}" ] && play "$running" $keys
 
