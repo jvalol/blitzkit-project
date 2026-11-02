@@ -26,6 +26,19 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# **Hold the display awake for the whole run.** A slept display films black
+# and a locked one films nothing at all, and this machine sleeps its after
+# two minutes on battery. The note further down has said so since
+# 2026-10-31, when three takes went to it, and nothing acted on the note: a
+# fourth went the same way on 2026-11-01, reported as "nothing came out of
+# the camera" with no clue which of the two it was.
+#
+# `-u` declares user activity, which wakes a display that has already gone;
+# `-d -w $$` keeps the next sleep off until this script exits. Neither can
+# unlock a locked screen, so that one is still Jake's to notice.
+caffeinate -u -t 1 || true
+caffeinate -d -w $$ &
+
 WIDE=1200
 # How good a clip is, as x264 counts it. 22 is a quiet number for flat shaded
 # geometry on black and puts the whole page under two megabytes.
@@ -35,9 +48,17 @@ RATE=${RATE:-30}
 #
 # The camera has to be running before the thing it is filming starts, so the
 # first seconds of every recording are whatever was on the screen behind it.
-# Two is the camera's own second to open plus a run's own to put a window up,
-# with a little to spare.
-PREROLL=${PREROLL:-2}
+#
+# **Counted to the fronting and not to the window.** This read two, for the
+# camera's own second to open and a run's own to put a window up, and the
+# arcade's clip on 2026-11-01 opened on a second of the chat window it was
+# being written in. A window that is up is not a window you can see: it comes
+# up behind whatever was there, and what puts it in front is `front`, which
+# this script does not call until 1.2 seconds for the camera, 0.8 for the run
+# and an ask for the window's box have all gone by. Those are this script's
+# own, so the number is the same for every example and two was short for all
+# of them.
+PREROLL=${PREROLL:-4}
 
 # What to film, as: example, wait seconds, film seconds, poster seconds,
 # keys.
@@ -71,11 +92,31 @@ PREROLL=${PREROLL:-2}
 # that own them, and the planner works out how to get between them. The
 # column in the table says `film:clip` and nothing else.
 #
-# 145 seconds of camera for a route that is 341 metres of walking and 17 of
-# standing, which is 98 before the turns. The rest is the turning and the
-# margin, and the length of the clip is Jake's call rather than this file's:
-# the solarium is half the walking in it, because its sun is eighty metres
-# from its door and the planets are strung along that line.
+# 36 seconds of camera for a route that is 72 metres of walking and 10 of
+# standing, which is 28 before the turns. Driven on 2026-11-02 with the
+# game saying where it was twice a second, it reached the pool at 29 and
+# finished its last stand at 32. The rest of the 36 is the turns, the
+# margin the camera opens with, and a few seconds of the pool to end on.
+#
+# It was 66 with the imaginarium in it. That room and the dog-leg up to it
+# were twenty-two of those sixty-six and held nearly every blank frame in
+# the film: seven seconds of a pale shaft climbed and then descended, and
+# walks across floors that are plaster. Measured by edge density over the
+# take, by eye after that. Jake cut it on 2026-11-02, the same call and
+# the same reason as the solarium below.
+#
+# And 66 was already down from 90, which was a camera left running for
+# half a minute after the clip had finished, because the number had not
+# been looked at since the route was twice as long.
+#
+# It was 145 while the clip walked out to the solarium's sun, which is a
+# hundred and nine metres from that room's threshold. Jake cut that on
+# 2026-11-01 after watching a take: the walk out and back was a hundred
+# and sixty of three hundred and forty-eight metres, almost all of it
+# across a dark field, and the leg that crossed it was a lattice of
+# sixty-seven thousand places that stopped the picture for twenty-five
+# seconds. The clip stands at the way in and looks down the planet line
+# now, which is the view that room is arranged for anyway.
 #
 # The notes under this one are kept because they are the reason that
 # happened, and because the other twelve examples are still keyed and the
@@ -87,27 +128,27 @@ PREROLL=${PREROLL:-2}
 #
 # Three things in them are still true and still worth knowing. A turn at the
 # far end of a dark room has nothing to steer by, which is why the route
-# still stands still in the garden, the solarium and the imaginarium rather
-# than curving through them. The bodies in the solarium are a tenth of a
+# still stands still in the garden and the solarium rather than curving
+# through them. The bodies in the solarium are a tenth of a
 # degree across from the door, which is why the route walks in at them
 # instead of looking from the doorway. And spec 0007's bookcase handle is a
 # metre wide where it was once 8.6 centimetres: do not narrow it again.
 #
-# **The arcade's line walks five rooms.** It used to walk into the hall and
+# **The arcade's line walks four rooms.** It used to walk into the hall and
 # turn to look at the cabinets, which was right when the hall was all there
 # was. Then it walked to the hotel. Then up to the imaginarium. Jake's call,
 # 2026-10-29: the arcade, the garden, the pool room and the solarium. The
 # imaginarium went back in on 2026-10-31, once spec 0038 had given it
-# something to work.
+# something to work, and came out again on 2026-11-02 for what it cost in
+# blank wall.
 #
 # The order is the building's and not a preference. The garden's way in and
 # the hole into the solarium are both within two metres of where you start, so
 # they come first and cost one walk between them. The hall runs the length of
 # the building and is walked once, end to end. The nook is at the far end of
-# it and holds both of the remaining ways on, the dog-leg up to the
-# imaginarium and the bookcase down to the baths, so the nook is walked twice
-# with the climb between the visits and the clip finishes standing in the
-# pool.
+# it and holds the bookcase down to the baths, so the hall's walk runs
+# straight into the one door that is worked on camera, and the clip finishes
+# standing in the pool.
 #
 # **Two doors are worked on camera and two are walked through.** The
 # bookcase is spec 0007's secret: pull the book, four hundred of them swing
@@ -307,7 +348,7 @@ ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
 chain	1.5	8	7.4	1 tap:right:20:0.035 3
 knot	1	8	4	hold:right:1.6 m 1.2 m 1.0 down 1.2 up
 load	3	15	6	1.5 m 1.5 up 1.5 up 1.5 up 2
-arcade	2.5	145	70	film:clip
+arcade	2.5	36	16	film:clip
 LIST
 )
 
@@ -363,6 +404,22 @@ stop() {
 
   kill -9 "$1" 2>/dev/null || true
   wait "$1" 2>/dev/null || true
+}
+
+# Which avfoundation device the screen is, asked rather than assumed.
+#
+# **Its number moves.** The list is the cameras and then the screens, so
+# the screen's index is however many cameras are plugged in at the time.
+# Written here as 3 it worked all the while a phone was offering itself as
+# a Continuity Camera and failed the moment it stopped: `-i 3` is an
+# invalid index, ffmpeg writes nothing, and the only thing that reaches
+# the log is "nothing came out of the camera", which is also what a
+# sleeping screen looks like. Two takes went to it on 2026-11-01 and the
+# first of them was spent fixing the wrong one of the two.
+screen_device() {
+  ffmpeg -hide_banner -f avfoundation -list_devices true -i "" 2>&1 |
+    sed -n 's/.*\[\([0-9]*\)\] Capture screen 0.*/\1/p' |
+    head -1
 }
 
 # Which window, and where it is in points, via CoreGraphics. There is no
@@ -838,7 +895,7 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # unlock it.
   raw=$(mktemp -t "$name").mp4
   ffmpeg -nostdin -hide_banner -loglevel error -f avfoundation -capture_cursor 0 \
-    -framerate "$RATE" -i "3" -t "$((seconds + PREROLL))" \
+    -framerate "$RATE" -i "$(screen_device)" -t "$((seconds + PREROLL))" \
     -vf "crop=$((w * SCALE)):$((h * SCALE)):$((x * SCALE)):$((y * SCALE)),scale=$WIDE:-2" \
     -c:v libx264 -preset ultrafast -crf 16 -pix_fmt yuv420p \
     "$raw" -y >/dev/null 2>&1 </dev/null &
@@ -911,6 +968,13 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # its arc and the wall is in pieces, which stays true however the swing
   # drifts. Where the clip is a thing happening once, the poster wants the
   # state it leaves behind, not the frame it happens in.
+  #
+  # The arcade's was 10, which on the route as it stands is the solarium: a
+  # black field with one word on it, as the still that stands for a game
+  # called arcade. It is 16 now, the walk down the hall, with cabinets either
+  # side and three of the games named on them. That walk runs from 14 to 17.5
+  # and every second of it is the same picture, so a take that drifts still
+  # lands on one.
   ffmpeg -nostdin -hide_banner -loglevel error -ss "${poster:-1}" \
     -i "$OUT/$name.mp4" -vframes 1 "$OUT/$name.png" -y >/dev/null 2>&1 </dev/null
 
