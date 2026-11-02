@@ -49,15 +49,24 @@ RATE=${RATE:-30}
 # The camera has to be running before the thing it is filming starts, so the
 # first seconds of every recording are whatever was on the screen behind it.
 #
-# **Counted to the fronting and not to the window.** This read two, for the
-# camera's own second to open and a run's own to put a window up, and the
+# **Counted to the fronting, and set by the slowest run.** This read two, for
+# the camera's own second to open and a run's own to put a window up, and the
 # arcade's clip on 2026-11-01 opened on a second of the chat window it was
-# being written in. A window that is up is not a window you can see: it comes
-# up behind whatever was there, and what puts it in front is `front`, which
-# this script does not call until 1.2 seconds for the camera, 0.8 for the run
-# and an ask for the window's box have all gone by. Those are this script's
-# own, so the number is the same for every example and two was short for all
-# of them.
+# being written in.
+#
+# Two things were wrong with the two. A window that is up is not a window you
+# can see: it comes up behind whatever was there, and what puts it in front is
+# `front`, which this script does not call until 1.2 seconds for the camera,
+# 0.8 for the run and an ask for the window's box have all gone by. And the
+# rest of the wait is the run's own, which is not the same for every example.
+# This file said it was, on 2026-11-01, and the committed clips say otherwise:
+# the fifteen filmed at two all open on their own first frame and only the
+# arcade leaked. It builds a whole building before it shows anything and they
+# draw a teapot.
+#
+# So four is the slowest run's number and the rest carry it. Refilmed at four
+# on 2026-11-02 and looked at frame by frame, all sixteen open on the example
+# with none of the desktop in front and none of the opening cut off.
 PREROLL=${PREROLL:-4}
 
 # What to film, as: example, wait seconds, film seconds, poster seconds,
