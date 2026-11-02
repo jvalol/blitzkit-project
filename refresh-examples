@@ -64,6 +64,35 @@ PREROLL=${PREROLL:-2}
 # window for that long; `zoom:<ticks>` turns the wheel over the middle of it;
 # and a number on its own is a wait in seconds.
 #
+# **The arcade's route is places now, and everything from here to the turn
+# rates below is history rather than instruction.** Spec 0049. The route is
+# `tour::clip` in the arcade's own source, which names the pond, the
+# planets, the bookcase, the baths and the pool by calling the accessors
+# that own them, and the planner works out how to get between them. The
+# column in the table says `film:clip` and nothing else.
+#
+# 145 seconds of camera for a route that is 341 metres of walking and 17 of
+# standing, which is 98 before the turns. The rest is the turning and the
+# margin, and the length of the clip is Jake's call rather than this file's:
+# the solarium is half the walking in it, because its sun is eighty metres
+# from its door and the planets are strung along that line.
+#
+# The notes under this one are kept because they are the reason that
+# happened, and because the other twelve examples are still keyed and the
+# general rules at the end still govern them. Read them as a record of what
+# an open loop costs: pinning into a wall to fix a coordinate the error was
+# in, a 0.98 second strafe sitting in a window ten per cent wide, backing
+# out of a room rather than turning round because a turn came back seven
+# degrees short. None of that is in the route any more.
+#
+# Three things in them are still true and still worth knowing. A turn at the
+# far end of a dark room has nothing to steer by, which is why the route
+# still stands still in the garden, the solarium and the imaginarium rather
+# than curving through them. The bodies in the solarium are a tenth of a
+# degree across from the door, which is why the route walks in at them
+# instead of looking from the doorway. And spec 0007's bookcase handle is a
+# metre wide where it was once 8.6 centimetres: do not narrow it again.
+#
 # **The arcade's line walks five rooms.** It used to walk into the hall and
 # turn to look at the cabinets, which was right when the hall was all there
 # was. Then it walked to the hotel. Then up to the imaginarium. Jake's call,
@@ -278,7 +307,7 @@ ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
 chain	1.5	8	7.4	1 tap:right:20:0.035 3
 knot	1	8	4	hold:right:1.6 m 1.2 m 1.0 down 1.2 up
 load	3	15	6	1.5 m 1.5 up 1.5 up 1.5 up 2
-arcade	2.5	92	45	hold:left:0.655 hold:w:2.4 hold:left:0.5 0.8 hold:left:0.80 hold:w:2.11 hold:right:0.655 hold:w:2.2 hold:left:0.36 1.2 hold:w:1.6 1.4 hold:s:1.6 hold:left:0.95 hold:w:5.2 hold:w+left:0.655 pin:w:2.6 pin:d:0.6 hold:left:0.655 hold:a:0.98 pin:w:3.6 hold:left:0.655 hold:w:2.3 hold:left:0.655 hold:w:1.0 hold:left:0.35 1.6 hold:w:1.0 hold:down:0.28 0.6 enter 1.2 hold:up:0.28 0.8 hold:right:1.0 hold:w:1.0 hold:right:0.655 pin:w:2.0 hold:right:0.655 pin:w:2.6 hold:right:0.655 hold:w:2.4 hold:left:0.655 hold:w:0.3 pin:d:0.6 hold:a:0.56 enter 1.4 hold:w:2.0 pin:w:0.9 hold:left:0.655 pin:w:1.4 hold:d:0.27 enter 1.3 hold:w:0.55 hold:w+right:0.28 1.5
+arcade	2.5	145	70	film:clip
 LIST
 )
 
@@ -699,6 +728,20 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
 
   say "== $name"
 
+  # **A route of places rather than keys, per spec 0049.** The column says
+  # `film:clip` and the route itself is `tour::clip`, which reads the
+  # building's own accessors for every place it names: the pond, the
+  # planets, the bookcase, the baths, the pool. Written out here it would be
+  # a second account of where all of those are, and this file is the last
+  # place that should hold one.
+  tour=""
+  case "${keys:-}" in
+    film:*)
+      tour="--film=${keys#film:}"
+      keys=""
+      ;;
+  esac
+
   # The example to run, which is not always what the file is called: teapot
   # and teapot-glass are the same binary filmed in its two states, which is
   # what the page has always shown and what the readme still shows as two
@@ -734,7 +777,12 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   #
   # Only the arcade, which is the only one with a panel and the only one that
   # answers this. The rest open a window at anything they do not recognise.
-  if [ "$runs" = arcade ] && ! "$binary" "--walk=$keys"; then
+  # A planned route has no keys to check and is not checked here: what says
+  # it goes where it says is `tour::tests::the_clip_s_tour_gets_all_the_way_round`,
+  # which plans every leg of it in the gate, works the two doors on the way,
+  # and names the legs that fail. That is a better answer than this was, and
+  # it is given before anything is built rather than after.
+  if [ "$runs" = arcade ] && [ -n "${keys:-}" ] && ! "$binary" "--walk=$keys"; then
     say "   the staged route does not go where it says, so nothing was filmed"
     missed=$((missed + 1))
     continue
@@ -798,7 +846,8 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
 
   # the camera takes about a second to open, and the run starts once it has
   sleep 1.2
-  "$binary" >/dev/null 2>"${WHERE_LOG:-/dev/null}" </dev/null &
+  # shellcheck disable=SC2086
+  "$binary" $tour >/dev/null 2>"${WHERE_LOG:-/dev/null}" </dev/null &
   running=$!
   sleep 0.8
 
