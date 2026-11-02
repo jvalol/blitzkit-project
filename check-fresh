@@ -160,11 +160,25 @@ look() {
 # base is site/ and the clips and the browser builds live at the repo root.
 # The repo was right, the build was right, and what a stranger got was neither.
 #
-# Size and not a hash, deliberately. Hashing means pulling 22 megabytes down
-# every run, and what goes wrong here is a whole file being an older build
-# rather than a byte changing inside one. A file that changed without changing
-# size would slip through, which is worth knowing and is not worth 22
-# megabytes a run.
+# **A hash, and it used to be the size.** The note here read "size and not a
+# hash, deliberately", on the grounds that pulling the files down every run
+# cost 22 megabytes and that what goes wrong is a whole file being an older
+# build rather than a byte changing inside one. It said in as many words that
+# a file which changed without changing size would slip through.
+#
+# One did, on 2026-11-02. Eleven lines came out of one source file and three
+# went into another, the arcade's wasm came out seven bytes different and
+# exactly as long, and this said the site matched one second after the push
+# went up. It would have said the same if Netlify had never built at all.
+#
+# The reason it was a size has gone away: the two directories are 69
+# megabytes now and fetching them eight at a time measures at about seven
+# seconds, against a gate that takes two minutes. The ETag cannot stand in
+# for the hash, because Netlify's is its own opaque value and not the md5 of
+# anything here: `arcade_bg.wasm` is 230dbeb8 on this disk and
+# 5369f1de-ssl on the site. An ETag can only say whether the site changed
+# since some value you wrote down, which is a different question from
+# whether it matches the tree.
 serving() {
     local site=https://blitzkit.jva.lol
     echo "== what the site is actually serving"
@@ -182,7 +196,8 @@ serving() {
             name=$(basename "$file")
             case "$name" in MADE | *.md) continue ;; esac
             [ -f "$file" ] || continue
-            printf '%s\t%s\n' "${file#blitzkit/}" "$(stat -f%z "$file")" >> "$list"
+            printf '%s\t%s\t%s\n' "${file#blitzkit/}" "$(md5 -q "$file")" \
+                "$(stat -f%z "$file")" >> "$list"
         done
     done
 
@@ -191,14 +206,26 @@ serving() {
         # eight at a time, because fifty two one after another is half a minute
         # and nobody waits through that twice
         xargs -P 8 -L 1 bash -c '
-            live=$(curl -fsS --max-time 6 -I "https://blitzkit.jva.lol/$0" 2>/dev/null |
-                awk "/[Cc]ontent-[Ll]ength/{print \$2}" | tr -d "\r")
+            body=$(mktemp)
 
-            if [ -z "$live" ]; then
+            if ! curl -fsS --max-time 60 -o "$body" "https://blitzkit.jva.lol/$0" 2>/dev/null; then
                 echo "   $0 is not there at all"
-            elif [ "$live" != "$1" ]; then
-                echo "   $0 is $live on the site and $1 here"
+            elif [ "$(md5 -q "$body")" != "$1" ]; then
+                there=$(stat -f%z "$body")
+
+                # **Both ways of being wrong, said apart.** A different
+                # length is an older build and reads as one. The same
+                # length and a different file is what a size check could
+                # never see, so it says so rather than printing two
+                # numbers that agree.
+                if [ "$there" = "$2" ]; then
+                    echo "   $0 is $there bytes on the site and here, and is not the same file"
+                else
+                    echo "   $0 is $there on the site and $2 here"
+                fi
             fi
+
+            rm -f "$body"
         ' < "$list"
     )
     rm -f "$list"
