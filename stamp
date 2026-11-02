@@ -20,6 +20,20 @@
 # with the clock, so there is no comparing to be done until the clock is
 # pinned. See spec 0056.
 #
+# **It is the clock and not the thing being filmed.** Written down because
+# it was got wrong on 2026-11-02, in a commit message that said the
+# arcade's cube seeds itself afresh each take. It does not: `Toy::new`
+# sets 0x5eed and the scramble comes off an LCG, so two fresh toys turn
+# the same twenty-five faces. The same two timestamps pulled out of two
+# takes show the cube in the same state and the camera a few centimetres
+# apart, and that offset is the whole of the difference between them.
+#
+# Pinning the clock would not be enough on its own either. The recording
+# samples the screen thirty times a second against a window on vsync, so
+# the phase between the two drifts however the game steps. Identical bytes
+# need frames written to files rather than filmed off a screen, which
+# nothing in the engine can do.
+#
 # **An artefact is made from two things, not one.** The engine is in all of
 # them, and anything that is not an example has a repo of its own on top of
 # that. The first version of this recorded only the engine, which meant the
