@@ -101,11 +101,18 @@ PREROLL=${PREROLL:-4}
 # that own them, and the planner works out how to get between them. The
 # column in the table says `film:clip` and nothing else.
 #
-# 36 seconds of camera for a route that is 72 metres of walking and 10 of
-# standing, which is 28 before the turns. Driven on 2026-11-02 with the
-# game saying where it was twice a second, it reached the pool at 29 and
-# finished its last stand at 32. The rest of the 36 is the turns, the
-# margin the camera opens with, and a few seconds of the pool to end on.
+# 46 seconds of camera for a route that is 90 metres of walking and 14 of
+# standing, which is 36 before the turns. Run in a test rather than
+# measured off a take, by `the_clip_walks_the_whole_route`, which drives
+# the game's own frame loop and prints what the route costs: 42.1
+# seconds. The rest of the 46 is the margin the camera opens with and a
+# few seconds of the pool to end on.
+#
+# It was 36 for a route of 72 and 10 until spec 0050's cube went on a
+# bench in the nook. That stop is the walk up the bench row and back,
+# plus four seconds of standing: the cube is solved when you meet it, so
+# working it scrambles it, and four seconds is the first four or five of
+# twenty-five quarter turns.
 #
 # It was 66 with the imaginarium in it. That room and the dog-leg up to it
 # were twenty-two of those sixty-six and held nearly every blank frame in
@@ -357,7 +364,7 @@ ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
 chain	1.5	8	7.4	1 tap:right:20:0.035 3
 knot	1	8	4	hold:right:1.6 m 1.2 m 1.0 down 1.2 up
 load	3	15	6	1.5 m 1.5 up 1.5 up 1.5 up 2
-arcade	2.5	36	16	film:clip
+arcade	2.5	46	16	film:clip
 LIST
 )
 
