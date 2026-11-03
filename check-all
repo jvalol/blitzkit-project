@@ -84,6 +84,36 @@ for repo in "${repos[@]}"; do
   done
 done
 
+# **And whether the copy is his.** The marker above catches a draft nobody
+# has touched. It stops catching anything the moment he strikes it, so a page
+# he signed off in September and I rewrote in November ships unmarked. The
+# signature is of the bytes, so it comes off the moment a character changes.
+#
+# Global, in ~/.claude/voice, because the three repos that pin the marker
+# string each wrote their own copy of that rule and this one is written once.
+# Skipped where it is not installed, so this repo still builds on a machine
+# that is not his.
+echo "== copy Jake has signed"
+if [ -x "$HOME/.claude/voice/check-voice" ]; then
+  # once per repository rather than once per crate. check-voice works on the
+  # git root, and blitzkit/shapes is a workspace member of the engine rather
+  # than a checkout of its own, so asking it separately asked the engine
+  # twice and reported its nine pages twice over.
+  seen=""
+  for repo in "." "${repos[@]}"; do
+    top=$(git -C "$repo" rev-parse --show-toplevel 2>/dev/null) || continue
+    case "$seen" in *"|$top|"*) continue ;; esac
+    seen="$seen|$top|"
+
+    if ! (cd "$repo" && "$HOME/.claude/voice/check-voice" > /dev/null 2>&1); then
+      (cd "$repo" && "$HOME/.claude/voice/check-voice")
+      failed+=("unsigned copy in $repo")
+    fi
+  done
+else
+  echo "   no ~/.claude/voice/check-voice here, so nothing was checked"
+fi
+
 # Every acceptance criterion names the test holding it up, and nothing in a
 # cargo run reads a spec, so a renamed test leaves the spec citing a name that
 # answers to nothing while still reading as though the behaviour is covered.

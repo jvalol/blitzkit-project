@@ -6,6 +6,10 @@
 
 !/.gitignore
 !/.gitattributes
+# the hashes of the copy Jake has signed off, per ~/.claude/voice/check-voice.
+# Committed, because a signature that lives only on one machine says nothing
+# to the next clone and nothing in a diff.
+!/.copy-signed
 !/README.md
 !/RELEASING.md
 !/LICENSE-MIT
