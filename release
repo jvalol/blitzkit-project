@@ -65,6 +65,21 @@ else
   echo "the manifests name $minor_now and need no edit"
 fi
 
+say "the pictures"
+# **Before the gate, because the arcade's own tests look at them.** Its hall
+# is a row of cabinets and each cabinet shows that game's
+# `media/screenshot.png`, read off the disk as the test runs. Taken after the
+# gate, these replace the art the hall was just held against: the picture of
+# the hall committed for 0.14.0 was of eight cabinets whose screenshots the
+# release went on to change half an hour later, and the next run of the gate
+# failed on 0.6% of that picture. Nothing in either repo declares that the
+# arcade reads the games' media, which is why the order is the only thing
+# holding it.
+#
+# It photographs real windows and is the flakiest thing in this file, so it
+# is also the step that most wants to be above the prompt.
+./refresh-screenshots
+
 say "the gate"
 ./check-all
 
@@ -78,16 +93,12 @@ if [ "$minor_now" != "$minor_want" ]; then
 fi
 echo "committed, pushed nowhere yet"
 
-say "the lockfiles and the pictures"
-# Above the prompt, because a lockfile in here records what is on disk rather
-# than what crates.io holds, and the bump put $want on disk a moment ago. It
-# was below the publish for 0.14.0 and that is what left the browser builds
-# stale: these commits are in the repos the builds are made from, so a build
-# rebuilt before them goes out of date the moment they land.
-#
-# refresh-screenshots photographs real windows and is the flakiest thing in
-# this file, which is another reason it belongs on this side of the line.
-./refresh-screenshots
+say "the lockfiles and the pictures those took"
+# A lockfile in here records what is on disk rather than what crates.io
+# holds, and the bump put $want on disk a moment ago, so this is above the
+# publish rather than below it. Below it for 0.14.0 is what left the browser
+# builds stale: these commits are in the repos the builds are made from, so a
+# build rebuilt before them goes out of date the moment they land.
 for repo in "${repos[@]}"; do
   [ "$repo" = "blitzkit" ] && continue
   (cd "$repo" && git add -A Cargo.lock media 2>/dev/null || true)

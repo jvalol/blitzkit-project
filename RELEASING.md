@@ -8,8 +8,8 @@ For whoever is cutting a release. Nothing here is needed to build on blitzkit:
 ```
 
 That is the whole thing. It checks every repo is clean and level, bumps
-`blitzkit/Cargo.toml`, bumps the games' manifests if the minor moved, runs
-`./check-all`, commits the bump, regenerates every screenshot and commits the
+`blitzkit/Cargo.toml`, bumps the games' manifests if the minor moved,
+regenerates every screenshot, runs `./check-all`, commits the bump and the
 lockfiles and pictures, rebuilds the browser builds that all of that made
 stale, asks you once before the upload, publishes, tags and pushes.
 
@@ -40,6 +40,15 @@ before a commit to a game repo is stale again the moment it lands. Putting the
 rebuild above the prompt but leaving the lockfiles below it fixed the first
 half and left the second, so the next push of the engine after 0.14.0 was
 refused the same way.
+
+**Take the screenshots before the gate.** The arcade's hall is a row of
+cabinets and each one shows that game's `media/screenshot.png`, read off the
+disk while its test runs. Regenerate them after the gate and the picture of
+the hall that was just checked is a picture of art the release then replaces.
+That is what happened for 0.14.0: eight screenshots moved half an hour after
+`check-all` went green, and the next run of it failed on 0.6% of the hall.
+Nothing in either repo declares that the arcade reads the games' media, so
+the order is the only thing holding it.
 
 **Push the games after the publish.** Their manifests name the minor, so the
 moment that moves they are asking for a version that does not exist yet. Push
