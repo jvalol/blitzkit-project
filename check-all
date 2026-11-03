@@ -23,6 +23,18 @@ cd "$(dirname "$0")" || exit 1
 # Overridable, because the number is this machine's and the script is not.
 export CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS:-4}
 
+# **And a picture test that drew nothing is not a picture test.** A machine
+# with no adapter skips every one of them in the project, says so on stderr,
+# and passes, which is the one failure here that looks exactly like success.
+# cargo swallows stderr from a test that passed, so the gate would never see
+# the line even if it looked.
+#
+# This machine has an adapter. A run of this that cannot find one has gone
+# wrong somewhere that matters more than the pictures, so the gate asks for a
+# panic instead of a skip and the engine obliges. Spec 0077. Every repo
+# inherits it, since the harness they all call is the engine's.
+export PICTURES_REQUIRED=1
+
 repos=()
 while read -r repo; do repos+=("$repo"); done < <(./list-repos)
 failed=()
