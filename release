@@ -78,32 +78,52 @@ if [ "$minor_now" != "$minor_want" ]; then
 fi
 echo "committed, pushed nowhere yet"
 
-# **And those commits just made the browser builds stale.** A game's manifest
-# lives in the repo its build is made from, so bumping fourteen of them puts
-# every game that has a browser build one commit behind it. The engine's
-# pre-push refuses on exactly that, and refuses after the upload, between the
-# publish and the push, which is the worst place in this file to stop: 0.14.0
-# went to crates.io and then sat there with nothing pushed anywhere and five
-# rebuilt wasm loose in the tree.
+say "the lockfiles and the pictures"
+# Above the prompt, because a lockfile in here records what is on disk rather
+# than what crates.io holds, and the bump put $want on disk a moment ago. It
+# was below the publish for 0.14.0 and that is what left the browser builds
+# stale: these commits are in the repos the builds are made from, so a build
+# rebuilt before them goes out of date the moment they land.
 #
-# Before the prompt rather than after it, because everything above the prompt
-# is undone by git reset --hard and nothing below it is. A build that fails
-# should fail while that is still true.
-#
-# Only when the minor moved, which is the only time the games are committed at
-# all. check-fresh counts a game's whole repo bar its prose, so a manifest
-# counts; it counts the engine by src and the example alone, so the engine's
-# own bump does not.
-if [ "$minor_now" != "$minor_want" ]; then
-  say "the browser builds, which those commits just put behind"
-  ./build-web
-  if [ -n "$(git -C blitzkit status --porcelain -- web)" ]; then
-    (cd blitzkit && git commit -q -m "Rebuild the browser builds for $want" -- web)
-    echo "rebuilt and committed"
-  else
-    echo "nothing moved, so nothing to commit"
+# refresh-screenshots photographs real windows and is the flakiest thing in
+# this file, which is another reason it belongs on this side of the line.
+./refresh-screenshots
+for repo in "${repos[@]}"; do
+  [ "$repo" = "blitzkit" ] && continue
+  (cd "$repo" && git add -A Cargo.lock media 2>/dev/null || true)
+  if [ -n "$(git -C "$repo" diff --cached --name-only)" ]; then
+    (cd "$repo" && git commit -q -m "Lock blitzkit $want, and the picture that goes with it")
   fi
+done
+echo "committed in each game, pushed nowhere yet"
+
+# **And everything committed so far just made the browser builds stale.** A
+# game's manifest, its lockfile and its screenshot all live in the repo its
+# build is made from, so committing them puts every game that has a browser
+# build behind it. The engine's pre-push refuses on exactly that, and refuses
+# wherever it is asked: for 0.14.0 that was between the publish and the push,
+# with the crate uploaded, nothing on GitHub and five rebuilt wasm loose in
+# the tree.
+#
+# So it goes last of the things above the prompt, after everything that writes
+# to a game repo, because everything above the prompt is undone by git reset
+# --hard and nothing below it is.
+say "the browser builds, which those commits just put behind"
+./build-web
+if [ -n "$(git -C blitzkit status --porcelain -- web)" ]; then
+  (cd blitzkit && git commit -q -m "Rebuild the browser builds for $want" -- web)
+  echo "rebuilt and committed"
+else
+  echo "nothing moved, so nothing to commit"
 fi
+
+# **And then ask the gate the push will ask.** The engine's pre-push is the
+# thing that refused 0.14.0, and the push it refuses is at the bottom of this
+# file, after the upload. Asked here it costs a few seconds and a git reset
+# --hard, and it is the same code either way rather than a second opinion
+# about freshness that can come apart from the first.
+say "what pre-push will say"
+(cd blitzkit && scripts/pre-push)
 
 say "publishing"
 echo "This uploads blitzkit $want to crates.io and cannot be undone."
@@ -112,7 +132,9 @@ read -r answer
 case "$answer" in
   y | Y | yes | YES) ;;
   *)
-    echo "stopped. The bump is committed and nothing is pushed; git reset --hard to undo it." >&2
+    echo "stopped. The bump, the lockfiles, the pictures and the browser builds" >&2
+    echo "are committed and nothing is pushed; git reset --hard in each repo" >&2
+    echo "undoes all of it." >&2
     exit 1
     ;;
 esac
@@ -127,18 +149,6 @@ for repo in "${repos[@]}"; do
   (cd "$repo" && git push -q)
 done
 echo "blitzkit v$want and every game"
-
-say "the lockfiles and the pictures"
-# The override resolves blitzkit to the checkout, so every lockfile in here
-# already records what is on disk; check-all built them a moment ago.
-./refresh-screenshots
-for repo in "${repos[@]}"; do
-  [ "$repo" = "blitzkit" ] && continue
-  (cd "$repo" && git add -A Cargo.lock media 2>/dev/null || true)
-  if [ -n "$(git -C "$repo" diff --cached --name-only)" ]; then
-    (cd "$repo" && git commit -q -m "Lock blitzkit $want, and the picture that goes with it" && git push -q)
-  fi
-done
 
 say "done"
 echo "blitzkit $want is published, tagged, and every repo is level."

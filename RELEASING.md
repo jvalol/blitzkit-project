@@ -9,10 +9,9 @@ For whoever is cutting a release. Nothing here is needed to build on blitzkit:
 
 That is the whole thing. It checks every repo is clean and level, bumps
 `blitzkit/Cargo.toml`, bumps the games' manifests if the minor moved, runs
-`./check-all`, commits the bump, rebuilds the browser builds that the bump
-just made stale, asks you once before the upload, publishes, tags, pushes,
-regenerates every screenshot and commits the lockfiles and pictures that
-follow.
+`./check-all`, commits the bump, regenerates every screenshot and commits the
+lockfiles and pictures, rebuilds the browser builds that all of that made
+stale, asks you once before the upload, publishes, tags and pushes.
 
 Look at the thirteen pictures afterwards. A staged shot can stage the wrong
 thing and nothing but a person can see that.
@@ -29,13 +28,18 @@ nothing until the bump was committed.
 **Tag after the publish.** A tag left behind by an upload that failed is worse
 than no tag at all.
 
-**Rebuild the browser builds before the prompt.** A game's manifest lives in
-the repo its build is made from, so bumping fourteen of them puts every game
-that has a browser build one commit behind it, and the engine's pre-push
-refuses exactly that. It refused 0.14.0 in the worst place there is: after the
-upload and before any push, with the crate published, nothing on GitHub and
-five rebuilt wasm loose in the tree. The rebuild goes above the prompt because
-everything above the prompt is undone by `git reset --hard`.
+**Rebuild the browser builds last of the things above the prompt.** A game's
+manifest, its lockfile and its screenshot all live in the repo its build is
+made from, so committing any of them puts every game that has a browser build
+behind it, and the engine's pre-push refuses exactly that. It refused 0.14.0 in
+the worst place there is: after the upload and before any push, with the crate
+published, nothing on GitHub and five rebuilt wasm loose in the tree. The
+rebuild goes above the prompt because everything above the prompt is undone by
+`git reset --hard`, and after everything else up there because a build rebuilt
+before a commit to a game repo is stale again the moment it lands. Putting the
+rebuild above the prompt but leaving the lockfiles below it fixed the first
+half and left the second, so the next push of the engine after 0.14.0 was
+refused the same way.
 
 **Push the games after the publish.** Their manifests name the minor, so the
 moment that moves they are asking for a version that does not exist yet. Push
@@ -45,7 +49,10 @@ them first and a clone of any game cannot build until the upload lands.
 `[patch.crates-io]` resolves blitzkit to the checkout, so a lockfile in here
 records what is on disk rather than what crates.io holds. Leaving them is a
 dozen dirty repos; committing them before the bump is a lockfile naming a
-release that does not exist.
+release that does not exist. After the bump and before the prompt is the one
+place that is neither, and it puts `refresh-screenshots`, which photographs
+real windows and is the flakiest step in the file, on the side of the line
+where failing costs nothing.
 
 v0.9.6 and v0.10.0 both shipped untagged and were tagged by hand later, which is
 the kind of thing a list of steps loses and a script does not.
