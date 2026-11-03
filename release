@@ -78,6 +78,33 @@ if [ "$minor_now" != "$minor_want" ]; then
 fi
 echo "committed, pushed nowhere yet"
 
+# **And those commits just made the browser builds stale.** A game's manifest
+# lives in the repo its build is made from, so bumping fourteen of them puts
+# every game that has a browser build one commit behind it. The engine's
+# pre-push refuses on exactly that, and refuses after the upload, between the
+# publish and the push, which is the worst place in this file to stop: 0.14.0
+# went to crates.io and then sat there with nothing pushed anywhere and five
+# rebuilt wasm loose in the tree.
+#
+# Before the prompt rather than after it, because everything above the prompt
+# is undone by git reset --hard and nothing below it is. A build that fails
+# should fail while that is still true.
+#
+# Only when the minor moved, which is the only time the games are committed at
+# all. check-fresh counts a game's whole repo bar its prose, so a manifest
+# counts; it counts the engine by src and the example alone, so the engine's
+# own bump does not.
+if [ "$minor_now" != "$minor_want" ]; then
+  say "the browser builds, which those commits just put behind"
+  ./build-web
+  if [ -n "$(git -C blitzkit status --porcelain -- web)" ]; then
+    (cd blitzkit && git commit -q -m "Rebuild the browser builds for $want" -- web)
+    echo "rebuilt and committed"
+  else
+    echo "nothing moved, so nothing to commit"
+  fi
+fi
+
 say "publishing"
 echo "This uploads blitzkit $want to crates.io and cannot be undone."
 printf 'go ahead? [y/N] '

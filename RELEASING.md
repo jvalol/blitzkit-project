@@ -9,9 +9,10 @@ For whoever is cutting a release. Nothing here is needed to build on blitzkit:
 
 That is the whole thing. It checks every repo is clean and level, bumps
 `blitzkit/Cargo.toml`, bumps the games' manifests if the minor moved, runs
-`./check-all`, commits the bump, asks you once before the upload, publishes,
-tags, pushes, regenerates every screenshot and commits the lockfiles and
-pictures that follow.
+`./check-all`, commits the bump, rebuilds the browser builds that the bump
+just made stale, asks you once before the upload, publishes, tags, pushes,
+regenerates every screenshot and commits the lockfiles and pictures that
+follow.
 
 Look at the thirteen pictures afterwards. A staged shot can stage the wrong
 thing and nothing but a person can see that.
@@ -27,6 +28,14 @@ nothing until the bump was committed.
 
 **Tag after the publish.** A tag left behind by an upload that failed is worse
 than no tag at all.
+
+**Rebuild the browser builds before the prompt.** A game's manifest lives in
+the repo its build is made from, so bumping fourteen of them puts every game
+that has a browser build one commit behind it, and the engine's pre-push
+refuses exactly that. It refused 0.14.0 in the worst place there is: after the
+upload and before any push, with the crate published, nothing on GitHub and
+five rebuilt wasm loose in the tree. The rebuild goes above the prompt because
+everything above the prompt is undone by `git reset --hard`.
 
 **Push the games after the publish.** Their manifests name the minor, so the
 moment that moves they are asking for a version that does not exist yet. Push
