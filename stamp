@@ -42,10 +42,24 @@
 # That is the exact failure this was written to stop, so it is written down
 # here rather than only fixed.
 #
-# Usage: ./stamp <manifest> [--from <repo>] <file> [<file> ...]
+# **And one of them is made from three.** The arcade's browser build bakes
+# every game's media/screenshot.png into the wasm through its build.rs,
+# because a browser has no disk to read them off. So retaking any one of
+# thirteen screenshots makes the published arcade stale, and neither commit
+# above can see it: both count inside one repo and this crosses thirteen.
+# It cost nine commits during the 0.15.0 release from the other end, where
+# the same files are inside the hall's picture. Spec 0053 fixed that end.
+#
+# --bakes records a hash of the files rather than a commit, because the
+# question here is not how far behind anything is: it is whether the bytes
+# that went in are still the bytes on disk, and that has a yes or a no.
+#
+# Usage: ./stamp <manifest> [--from <repo>] [--bakes <glob>] <file> [<file> ...]
 #   paths are relative to the manifest's own directory
 #   --from names the repo the thing was built out of, when that is not the
 #   engine. Left off for an example, which is the engine's own.
+#   --bakes names files carried inside the thing from outside its repo,
+#   as one unquoted glob. A dash when there are none.
 
 set -euo pipefail
 
@@ -62,6 +76,14 @@ if [ "${1:-}" = --from ]; then
     at="$at+"
   fi
   from="$(basename "$repo")@$at"
+fi
+
+bakes=-
+if [ "${1:-}" = --bakes ]; then
+  # shellcheck disable=SC2086
+  bakes=$(cat $2 2>/dev/null | shasum -a 256 | cut -c1-8)
+  [ -z "$bakes" ] && bakes=unknown
+  shift 2
 fi
 
 engine=$(git -C blitzkit rev-parse --short HEAD 2>/dev/null || echo unknown)
@@ -85,7 +107,7 @@ if [ ! -f "$manifest" ]; then
     echo "# the engine, and a dash when it is. A + on either means that tree"
     echo "# was dirty, so what was built is not quite that commit."
     echo "#"
-    echo "# file	engine	source	made"
+    echo "# file	engine	source	made	bakes"
   } > "$manifest"
 fi
 
@@ -93,7 +115,7 @@ for file in "$@"; do
   # out with the old line, in with the new
   tmp=$(mktemp)
   grep -v "^$file	" "$manifest" > "$tmp" || true
-  printf '%s\t%s\t%s\t%s\n' "$file" "$engine" "$from" "$when" >> "$tmp"
+  printf '%s\t%s\t%s\t%s\t%s\n' "$file" "$engine" "$from" "$when" "$bakes" >> "$tmp"
   # the comments first, then the rest in name order, so a diff is readable
   { grep '^#' "$tmp"; grep -v '^#' "$tmp" | grep -v '^$' | sort; } > "$manifest"
   rm -f "$tmp"

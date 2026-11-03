@@ -44,6 +44,15 @@ behind_engine() {
 # was level while a whole room had been built, walked, parked and committed in
 # the arcade's own repo. A freshness check that cannot see the thing that
 # changed is worse than none, because it is believed.
+# The hash of what the arcade's build.rs bakes in, as `./stamp --bakes`
+# writes it. One place, so the two cannot say it differently.
+BAKED=games/*/media/screenshot.png
+
+baked_now() {
+  # shellcheck disable=SC2086
+  cat $BAKED 2>/dev/null | shasum -a 256 | cut -c1-8
+}
+
 behind_source() {
   local from=$1
 
@@ -95,12 +104,14 @@ look() {
   # thing, and so are a .js and its .wasm; fifty lines is not a report
   # anybody reads.
   local names="" seen
-  while IFS=$'\t' read -r file was from made; do
+  while IFS=$'\t' read -r file was from made bakes; do
     # a line written before this knew about source repos
     if [ -z "$made" ]; then
       made=$from
       from=-
     fi
+    # or before it knew a thing can carry files from outside its repo
+    [ -z "$bakes" ] && bakes=-
 
     case "$file" in '#'*|'') continue ;; esac
 
@@ -127,7 +138,18 @@ look() {
       continue
     fi
 
-    [ "$gap" = 0 ] && [ "$own" = 0 ] && continue
+    # **And what it carries from outside both repos.** The arcade's wasm
+    # bakes every game's screenshot through its build.rs, so retaking one
+    # makes the published build stale and neither count above can see it:
+    # both count commits inside one repo and this crosses thirteen. A hash
+    # rather than a count, because the question is whether the bytes that
+    # went in are still the bytes on disk.
+    local carried=0
+    if [ "$bakes" != - ] && [ "$bakes" != "$(baked_now)" ]; then
+      carried=1
+    fi
+
+    [ "$gap" = 0 ] && [ "$own" = 0 ] && [ "$carried" = 0 ] && continue
     names="$names $seen"
 
     local says=""
@@ -136,8 +158,15 @@ look() {
       [ -n "$says" ] && says="$says and "
       says="$says$own of its own"
     fi
+    # "behind" belongs to the counts and not to the art: a build carrying
+    # art that has changed is not behind by any number, it is wrong.
+    [ -n "$says" ] && says="$says behind"
+    if [ "$carried" != 0 ]; then
+      [ -n "$says" ] && says="$says, and "
+      says="${says}carrying art that has changed"
+    fi
 
-    echo "   $seen, $says behind, made $made"
+    echo "   $seen, $says, made $made"
     behind=$((behind + 1))
   done < "$manifest"
 

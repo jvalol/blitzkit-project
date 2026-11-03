@@ -121,6 +121,13 @@ for name in "${wanted[@]}"; do
   # the engine's own and names no second one.
   if [ "$kind" = example ]; then
     ./stamp "$OUT/MADE" "$name.js" "${name}_bg.wasm"
+  elif [ "$name" = arcade ]; then
+    # **Three things, not two.** Its build.rs bakes every game's screenshot
+    # into the wasm, because a browser has no disk to read them off, so a
+    # screenshot retaken anywhere makes this build stale and neither commit
+    # can see it. ./check-fresh names the same glob; see BAKED there.
+    ./stamp "$OUT/MADE" --from "$repo" --bakes 'games/*/media/screenshot.png' \
+      "$name.js" "${name}_bg.wasm"
   else
     ./stamp "$OUT/MADE" --from "$repo" "$name.js" "${name}_bg.wasm"
   fi
