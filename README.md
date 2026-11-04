@@ -15,6 +15,8 @@ There's a guide at [blitzkit.jva.lol](https://blitzkit.jva.lol). Crate docs are 
 
 These are a few games demonstrating it.
 
+![Thirteen frames in a grid: a tower of wooden blocks, balls on green cloth, dominoes in a spiral, one candle in a dim room, a marble on a tilted slab, three doors with a lit prize, pong, pool table and cue, lit panels down a dark hall, the checked tunnel, snake, a Van Gogh cut into sliding tiles, and a tetromino well](https://raw.githubusercontent.com/jvalol/blitzkit/main/media/games.png)
+
 - [blitzkit](https://github.com/jvalol/blitzkit) the engine, a wrapper around wgpu.
 - [arcade](https://github.com/jvalol/arcade) the arcade. All games inside were built using this engine.
 - [pong](https://github.com/jvalol/pong) the first game on it.
