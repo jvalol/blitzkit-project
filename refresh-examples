@@ -34,7 +34,12 @@
 # The engine draws the frames now: `--film-for <seconds>` writes every frame
 # it draws to stdout as raw pixels, on fixed steps with no clock in it, and
 # ffmpeg reads them off the pipe. Nothing lands on the disc, no window opens,
-# the keys go to the game and nowhere else, and two runs give the same bytes.
+# and the keys go to the game and nowhere else.
+#
+# **Two runs give the same bytes for fourteen of the sixteen.** menger and
+# load do not, measured over two runs each of all of them on 2026-11-04;
+# everything else matches to the byte, the arcade's 46 seconds included, so
+# it is not length and not scene size. See spec 0084.
 #
 # The keys are a file the engine plays rather than events posted at the
 # screen: the table below is compiled into the log format of spec 0080, which
@@ -115,7 +120,7 @@ RATE=${RATE:-30}
 # stands at the way in and looks down the planet line now, which is the view
 # that room is arranged for anyway.
 CLIPS=$(cat <<'LIST'
-rolling	2.5	9	5	hold:right:1.4 hold:up:1.2 hold:left:1.4 hold:down:1.2 o
+rolling	2.5	9	6.5	hold:right:1.4 hold:up:1.2 hold:left:1.4 hold:down:1.2 o
 stacking	4	13	7	shove:0.66:0.58:1.9 2.6 shove:0.26:0.43:1.9 2.6 k
 cubes	0.5	10	6	1 l 2.5 l 2.5 l
 teapot	1	7	4	hold:right:2.5 hold:q:1.5
@@ -123,13 +128,13 @@ teapot-glass	1	7	5	t 0.4 hold:right:2.5 hold:e:1.5
 klein	1	7	4	hold:right:3 hold:q:1.5
 klein-glass	1	7	5	m 0.3 t 0.4 hold:right:3
 tunnel	0.5	7	4
-sierpinski	1	7	5	1.5 up 2 up 2 down
-menger	1	7	5	1.5 up 2.5 down
-hilbert	1	7	5	1.5 up 2.5 down
+sierpinski	1	7	2	1.5 up 2 up 2 down
+menger	1	7	2	1.5 up 2.5 down
+hilbert	1	7	6.5	1.5 up 2.5 down
 ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
 chain	1.5	8	7.4	1 tap:right:20:0.035 3
 knot	1	8	4	hold:right:1.6 m 1.2 m 1.0 down 1.2 up
-load	3	15	6	1.5 m 1.5 up 1.5 up 1.5 up 2
+load	3	15	12	1.5 m 1.5 up 1.5 up 1.5 up 2
 arcade	2.5	46	16	film:clip
 LIST
 )
@@ -354,8 +359,10 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # triangles at every second tried, where the clip of the same run has the
   # numbers. Spec 0084 says what that is and leaves it.
   #
-  # The clip is the same bytes every time, so the frame taken out of it is
-  # too.
+  # The clip is the same bytes every time for fourteen of the sixteen, so
+  # the frame taken out of it is too. For menger and load it is not, and a
+  # poster that moves with the clip is the least of what that costs. Spec
+  # 0084.
   #
   # Written down per example rather than taken at some fraction of the length.
   # Six tenths of the way through chain is a floor covered in bricks with the
