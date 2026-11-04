@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# Lay a set of pictures out as one grid, for a readme or a page that wants to
+# show what is here before it says anything about it.
+#
+# **One place rather than two.** The examples have a grid and the games have
+# one, on the same site and in readmes that sit beside each other, so the two
+# have to agree about tile size, column count and spacing or they read as two
+# different things. They are built by two different scripts, which is exactly
+# the shape this project keeps getting wrong, so the layout lives here and
+# both call it.
+#
+# It renders nothing itself. Everything it lays out was drawn by the engine
+# already, so a grid is as fresh as the files it is built from, and it is
+# rebuilt from all of them on every run rather than patched. There is nothing
+# to stamp: a grid cannot be staler than its own tiles.
+set -euo pipefail
+
+# Four across, which is what 1200 of readme wants and what the site's own
+# content column takes without scrolling sideways.
+ACROSS=${ACROSS:-4}
+# How wide each tile is. Four of these plus the gaps is the whole picture.
+TILE=${TILE:-296}
+# A hair of space, so a row that does not fill reads as a grid with a gap in
+# it rather than as a picture with a hole.
+GAP=${GAP:-4}
+
+say() { printf '%s\n' "$*"; }
+
+out=${1:-}
+shift || true
+
+if [ -z "$out" ] || [ $# -eq 0 ]; then
+  say "usage: ./contact-sheet <out.png> <picture> [picture...]" >&2
+  exit 2
+fi
+
+for one in "$@"; do
+  if [ ! -f "$one" ]; then
+    say "there is no $one to lay out" >&2
+    exit 1
+  fi
+done
+
+# The tiles are scaled to a fixed width and whatever height that gives, so a
+# set that is not all one shape still lines up in its columns. Every picture
+# this is given today is 1200 by 948, which is the engine's PICTURE_SIZE, and
+# nothing here depends on that staying true.
+tall=$(python3 -c "
+import subprocess, sys
+out = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0',
+                      '-show_entries', 'stream=width,height', '-of', 'csv=p=0',
+                      '$1'], capture_output=True, text=True).stdout.strip()
+w, h = (int(n) for n in out.split(','))
+print(round($TILE * h / w))
+")
+
+down=$(python3 -c "import math; print(math.ceil($# / $ACROSS))")
+
+inputs=()
+for one in "$@"; do inputs+=(-i "$one"); done
+
+chain=""
+n=0
+for _ in "$@"; do
+  chain="$chain[$n:v]scale=$TILE:$tall,setsar=1[t$n];"
+  n=$((n + 1))
+done
+
+joined=""
+n=0
+for _ in "$@"; do
+  joined="$joined[t$n]"
+  n=$((n + 1))
+done
+
+# A row that does not fill sits in the middle of its row rather than against
+# the left edge. Thirteen games in fours leaves one tile on the last row, and
+# against the edge that reads as three pictures that failed to load.
+layout=$(python3 -c "
+across, tile, gap, n = $ACROSS, $TILE, $GAP, $#
+tall = $tall
+places = []
+for i in range(n):
+    row, col = divmod(i, across)
+    filled = min(across, n - row * across)
+    indent = (across - filled) * (tile + gap) // 2
+    places.append('%d_%d' % (indent + col * (tile + gap), row * (tall + gap)))
+print('|'.join(places))
+")
+
+ffmpeg -nostdin -hide_banner -loglevel error "${inputs[@]}" \
+  -filter_complex "${chain}${joined}xstack=inputs=$#:layout=$layout:fill=black" \
+  -frames:v 1 "$out" -y </dev/null
+
+say "$out, $# across $ACROSS by $down"

@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Hold a film to what it says it is: one frame per fixed step, at the size the
+# engine reports, and nothing else in the stream. Spec 0084.
+#
+# **Both faults this caught were silent.** A film is raw pixels with no header
+# and no framing, so nothing in it says where a frame starts. An encoder told
+# the wrong size draws the right bytes diagonally and never complains, and a
+# game that prints a line to the same stream shifts every frame after it by
+# the length of what it said. The first went out as a clip of mush; the second
+# was `load`, which writes a row of comma separated costs per frame and put
+# its column headings through the middle of a frame.
+#
+# Neither is visible in the code. Both are arithmetic: the bytes that come out
+# of a film are the seconds, times the step, times the pixels, times four. So
+# that is what this counts.
+set -euo pipefail
+cd "$(dirname "$0")"
+
+# Long enough to be several frames and short enough to run in a gate.
+SECONDS_OF=${SECONDS_OF:-0.5}
+# The engine's own step, which is the one number here that is said twice. It
+# is not asked for because nothing prints it, and it is the step a film is
+# defined in terms of rather than a size that has to match something.
+STEP=60
+
+say() { printf '%s\n' "$*"; }
+
+TARGET=$(cd blitzkit && cargo metadata --format-version 1 --no-deps |
+  python3 -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')/release
+
+# Two of them: one that says nothing while it runs and one that does not.
+# load is the reason this file exists and is the whole point of checking more
+# than one.
+for name in rolling load; do
+  binary="$TARGET/examples/$name"
+
+  if [ ! -x "$binary" ]; then
+    say "there is no $binary to run, so nothing was checked"
+    exit 1
+  fi
+
+  read -r wide tall <<< "$("$binary" --film-size)"
+  if [ -z "${tall:-}" ]; then
+    say "$name would not say how big its frames are"
+    exit 1
+  fi
+
+  frames=$(mktemp -u)
+  mkfifo "$frames"
+  wc -c < "$frames" > "$frames.count" &
+  counting=$!
+
+  "$binary" --film-to "$frames" --film-for "$SECONDS_OF" >/dev/null 2>&1 || true
+  wait "$counting"
+
+  got=$(tr -d ' ' < "$frames.count")
+  rm -f "$frames" "$frames.count"
+
+  want=$(python3 -c "print(round($SECONDS_OF * $STEP) * $wide * $tall * 4)")
+
+  if [ "$got" != "$want" ]; then
+    say "$name filmed $got bytes and ${SECONDS_OF}s at ${wide}x${tall} is $want."
+    say "Either a frame is not the size it says, or something else is in the"
+    say "stream with the pixels."
+    exit 1
+  fi
+done
+
+say "a film is frames and nothing else, at the size the engine reports"

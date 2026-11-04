@@ -4,9 +4,9 @@
 # Sibling of ./refresh-screenshots, which does the same job for the games. The
 # two are kept apart because the games are each their own repo and stage their
 # own shot through a --screenshot argument, while the examples are a dozen
-# binaries in one repo that take no arguments at all. What stages them is this
-# file: a line per example saying how long to let it settle, how long to film,
-# and which keys to press while the camera is running.
+# binaries in one repo that take no arguments of their own. What stages them is
+# this file: a line per example saying how long to wait, how long to film,
+# which second the still comes from, and what to press while it runs.
 #
 # That is the whole reason it exists. The examples page had stills from the
 # 28th of September on it on the 15th of October, and nothing anywhere could
@@ -18,59 +18,45 @@
 # clip that loops, with a still pulled out of the middle of it to stand in
 # until the clip loads and to be the picture a readme can use.
 #
-# macOS only on both counts: it photographs a real window, because nothing in
-# the engine renders to a file, and it films the whole screen and crops the
-# window out of it, because nothing here films one window. The windows are on
-# screen while this runs and the keys go to whatever is frontmost, so leave
-# the machine alone while it works.
+# **It renders rather than films.** Until spec 0084 this ran a real window and
+# filmed the whole screen with ffmpeg against avfoundation, cropping the
+# window out of the result, and pressed its keys with CGEvent at whatever was
+# frontmost. Five things came with that and every one of them cost something.
+#
+# It needed a Screen Recording grant. It was macOS only, twice over. The
+# window had to stay in front, so a run was something you had to leave the
+# machine alone for, and a run that lost the front filmed the wrong thing
+# rather than failing. The display had to stay awake, and four takes across
+# two days went to it sleeping. And it never came back twice the same, so
+# nothing could tell a clip that had changed from a clip that had been
+# refilmed.
+#
+# The engine draws the frames now: `--film-for <seconds>` writes every frame
+# it draws to stdout as raw pixels, on fixed steps with no clock in it, and
+# ffmpeg reads them off the pipe. Nothing lands on the disc, no window opens,
+# the keys go to the game and nowhere else, and two runs give the same bytes.
+#
+# The keys are a file the engine plays rather than events posted at the
+# screen: the table below is compiled into the log format of spec 0080, which
+# is the format `--record` writes. Spec 0081 built that so a staged run could
+# be recorded by hand instead of written out; this is the other end of it.
 set -euo pipefail
 cd "$(dirname "$0")"
 
-# **Hold the display awake for the whole run.** A slept display films black
-# and a locked one films nothing at all, and this machine sleeps its after
-# two minutes on battery. The note further down has said so since
-# 2026-10-31, when three takes went to it, and nothing acted on the note: a
-# fourth went the same way on 2026-11-01, reported as "nothing came out of
-# the camera" with no clue which of the two it was.
-#
-# `-u` declares user activity, which wakes a display that has already gone;
-# `-d -w $$` keeps the next sleep off until this script exits. Neither can
-# unlock a locked screen, so that one is still Jake's to notice.
-caffeinate -u -t 1 || true
-caffeinate -d -w $$ &
-
-WIDE=1200
 # How good a clip is, as x264 counts it. 22 is a quiet number for flat shaded
-# geometry on black and puts the whole page under two megabytes.
+# geometry on black.
+#
+# The sixteen come to 29 MB at it, against 25 before this rendered them. A
+# drawn frame is sharper than a screen capture taken at two pixels to a point
+# and scaled down to one, and the scaling was doing some of x264's work for
+# it. The line here used to say the page came in under two megabytes, which
+# had not been true of the committed clips for a long time.
 QUALITY=${QUALITY:-22}
+# What the page plays at. The engine draws at its own fixed step, which is a
+# sixtieth; ffmpeg drops to this on the way out.
 RATE=${RATE:-30}
-# How much of the front of each recording is thrown away.
-#
-# The camera has to be running before the thing it is filming starts, so the
-# first seconds of every recording are whatever was on the screen behind it.
-#
-# **Counted to the fronting, and set by the slowest run.** This read two, for
-# the camera's own second to open and a run's own to put a window up, and the
-# arcade's clip on 2026-11-01 opened on a second of the chat window it was
-# being written in.
-#
-# Two things were wrong with the two. A window that is up is not a window you
-# can see: it comes up behind whatever was there, and what puts it in front is
-# `front`, which this script does not call until 1.2 seconds for the camera,
-# 0.8 for the run and an ask for the window's box have all gone by. And the
-# rest of the wait is the run's own, which is not the same for every example.
-# This file said it was, on 2026-11-01, and the committed clips say otherwise:
-# the fifteen filmed at two all open on their own first frame and only the
-# arcade leaked. It builds a whole building before it shows anything and they
-# draw a teapot.
-#
-# So four is the slowest run's number and the rest carry it. Refilmed at four
-# on 2026-11-02 and looked at frame by frame, all sixteen open on the example
-# with none of the desktop in front and none of the opening cut off.
-PREROLL=${PREROLL:-4}
 
-# What to film, as: example, wait seconds, film seconds, poster seconds,
-# keys.
+# What to film, as: example, wait seconds, film seconds, poster seconds, keys.
 #
 # tower is not here, and that is a decision rather than an oversight. It went
 # on 2026-10-16 because cairn is the better example of the same thing: four
@@ -78,276 +64,56 @@ PREROLL=${PREROLL:-4}
 # tower that comes apart because taking it apart is the game. It came off the
 # page, and then out of the engine altogether. See blitzkit spec 0054.
 #
-# The wait is how long into the clip the keys start, not how long before the
-# camera opens: the camera is running before the example is, so the opening
-# is in every clip.
+# The wait is how long into the clip the keys start. There is no camera to
+# open any more, so a clip begins on the example's own first frame and the
+# wait is time the game runs with nothing pressed.
 #
-# The keys are what somebody would press while watching, sent once the camera
-# is running. A key is a letter, `space`, `enter`, or an arrow as
-# `left`/`right`/`up`/`down`; `hold:<key>:<seconds>` holds one down, and the
-# key may be several joined by a plus, as `hold:w+left:0.8`, which holds them
-# together and is how a corner is walked rather than pivoted on; `pin:` is the
-# same thing for a walk meant to end against a wall, which the check lets
-# through rather than calling stopped;
+# The keys are what somebody would press while watching. A key is a letter,
+# `space`, `enter`, or an arrow as `left`/`right`/`up`/`down`, which are the
+# names `KeyboardKey::named` already knows, so nothing here translates them;
+# `hold:<key>:<seconds>` holds one down, and the key may be several joined by
+# a plus, as `hold:w+left:0.8`, which holds them together and is how a corner
+# is walked rather than pivoted on; `pin:` is the same thing, kept apart
+# because a pinned walk is meant to end against a wall;
 # `tap:<key>:<many>:<gap>` hits it over and over;
 # `shove:<across>:<down>:<held>` presses the mouse at that fraction of the
-# window for that long; `zoom:<ticks>` turns the wheel over the middle of it;
+# frame for that long; `zoom:<ticks>` turns the wheel over the middle of it;
 # and a number on its own is a wait in seconds.
 #
-# **The arcade's route is places now, and everything from here to the turn
-# rates below is history rather than instruction.** Spec 0049. The route is
-# `tour::clip` in the arcade's own source, which names the pond, the
-# planets, the bookcase, the baths and the pool by calling the accessors
-# that own them, and the planner works out how to get between them. The
-# column in the table says `film:clip` and nothing else.
+# **The timings mean what they say now.** Each key used to cost about three
+# tenths of a second of fronting the window and sleeping either side of the
+# press, which the table's numbers were written around. A key is an instant in
+# the log, so the gaps between them are the gaps written here.
 #
-# 46 seconds of camera for a route that is 90 metres of walking and 14 of
-# standing, which is 36 before the turns. Run in a test rather than
-# measured off a take, by `the_clip_walks_the_whole_route`, which drives
-# the game's own frame loop and prints what the route costs: 42.1
-# seconds. The rest of the 46 is the margin the camera opens with and a
-# few seconds of the pool to end on.
+# **The arcade's route is places rather than keys, per spec 0049.** The column
+# says `film:clip` and the route itself is `tour::clip`, which reads the
+# building's own accessors for every place it names: the pond, the planets,
+# the bookcase, the baths, the pool. Written out here it would be a second
+# account of where all of those are, and this file is the last place that
+# should hold one.
 #
-# It was 36 for a route of 72 and 10 until spec 0050's cube went on a
-# bench in the nook. That stop is the walk up the bench row and back,
-# plus four seconds of standing: the cube is solved when you meet it, so
-# working it scrambles it, and four seconds is the first four or five of
-# twenty-five quarter turns.
+# 46 seconds for a route that is 90 metres of walking and 14 of standing.
+# Run in a test rather than measured off a take, by
+# `the_clip_walks_the_whole_route`, which drives the game's own frame loop and
+# prints what the route costs: 42.1 seconds. The rest is a few seconds of the
+# pool to end on.
 #
 # It was 66 with the imaginarium in it. That room and the dog-leg up to it
-# were twenty-two of those sixty-six and held nearly every blank frame in
-# the film: seven seconds of a pale shaft climbed and then descended, and
-# walks across floors that are plaster. Measured by edge density over the
-# take, by eye after that. Jake cut it on 2026-11-02, the same call and
-# the same reason as the solarium below.
-#
-# And 66 was already down from 90, which was a camera left running for
-# half a minute after the clip had finished, because the number had not
-# been looked at since the route was twice as long.
+# were twenty-two of those sixty-six and held nearly every blank frame in the
+# film: seven seconds of a pale shaft climbed and then descended, and walks
+# across floors that are plaster. Jake cut it on 2026-11-02, the same call and
+# the same reason as the solarium. And 66 was already down from 90, which was
+# a camera left running for half a minute after the clip had finished, because
+# the number had not been looked at since the route was twice as long.
 #
 # It was 145 while the clip walked out to the solarium's sun, which is a
 # hundred and nine metres from that room's threshold. Jake cut that on
-# 2026-11-01 after watching a take: the walk out and back was a hundred
-# and sixty of three hundred and forty-eight metres, almost all of it
-# across a dark field, and the leg that crossed it was a lattice of
-# sixty-seven thousand places that stopped the picture for twenty-five
-# seconds. The clip stands at the way in and looks down the planet line
-# now, which is the view that room is arranged for anyway.
-#
-# The notes under this one are kept because they are the reason that
-# happened, and because the other twelve examples are still keyed and the
-# general rules at the end still govern them. Read them as a record of what
-# an open loop costs: pinning into a wall to fix a coordinate the error was
-# in, a 0.98 second strafe sitting in a window ten per cent wide, backing
-# out of a room rather than turning round because a turn came back seven
-# degrees short. None of that is in the route any more.
-#
-# Three things in them are still true and still worth knowing. A turn at the
-# far end of a dark room has nothing to steer by, which is why the route
-# still stands still in the garden and the solarium rather than curving
-# through them. The bodies in the solarium are a tenth of a
-# degree across from the door, which is why the route walks in at them
-# instead of looking from the doorway. And spec 0007's bookcase handle is a
-# metre wide where it was once 8.6 centimetres: do not narrow it again.
-#
-# **The arcade's line walks four rooms.** It used to walk into the hall and
-# turn to look at the cabinets, which was right when the hall was all there
-# was. Then it walked to the hotel. Then up to the imaginarium. Jake's call,
-# 2026-10-29: the arcade, the garden, the pool room and the solarium. The
-# imaginarium went back in on 2026-10-31, once spec 0038 had given it
-# something to work, and came out again on 2026-11-02 for what it cost in
-# blank wall.
-#
-# The order is the building's and not a preference. The garden's way in and
-# the hole into the solarium are both within two metres of where you start, so
-# they come first and cost one walk between them. The hall runs the length of
-# the building and is walked once, end to end. The nook is at the far end of
-# it and holds the bookcase down to the baths, so the hall's walk runs
-# straight into the one door that is worked on camera, and the clip finishes
-# standing in the pool.
-#
-# **Two doors are worked on camera and two are walked through.** The
-# bookcase is spec 0007's secret: pull the book, four hundred of them swing
-# out of the way, and the stair down is behind it. The baths' leaf is spec
-# 0008's. Spec 0042's checker could not replay either until a route needed
-# them, and said so in as many words.
-#
-# The imaginarium's two are not worked at all, since specs 0047 and 0048
-# made them ways you take rather than things you press. The route walks
-# into the hatch in the floor and the room turns it over on to what was the
-# west wall, crosses frame one's floor, climbs frame one's flight, and goes
-# out of the door at the top, which puts it back in frame nought at the
-# foot of its own stairs. One circuit, both portals, and it comes out where
-# it needs to be for the way down.
-#
-# **A crossing takes no keys, so the route waits through one.** Walking is
-# suspended for the whole of it, which is the only way a scripted turn can
-# be honest, so a `hold:w` held across one covers no ground and spec 0042's
-# checker rightly calls that stopped. The waits after `hold:w:2.0` and
-# `pin:w:3.4` are the two crossings and nothing else.
-#
-# **It never stops to turn at a corner.** Every corner is a `hold:w+left` or a
-# `hold:w+right`, walking and turning at once, which draws an arc. Jake watched
-# a route that pivoted and said it felt robotic, which it was. A quarter turn
-# at a walk sweeps about 1.3 metres across and 2.1 along, so a corner starts
-# two metres before its opening rather than at it.
-#
-# **Both dead ends turn the way the room is.** Jake watched a take on
-# 2026-11-01 and said the garden turns right, which shows the wall, when
-# left would show the garden. He is right and the numbers say so: from
-# where the route stands, the pond is at bearing -167 and the garden's
-# middle at -173, and the about-turn out of the room went right through
-# west, north and east, which is the wall behind and the way back. Left is
-# forty degrees shorter and sweeps across the pond.
-#
-# The solarium was worse. Every one of the eight bodies is at bearing 122
-# to 132 from the door and the route faced 98, so it looked past the lot
-# of them at a wall. It stands at them now and walks six metres in, which
-# is what brings Neptune and its name up: at the door only Triton's label
-# is readable and nothing else in that room is bigger than a tenth of a
-# degree across.
-#
-# **And it backs out rather than turning round.** This file already knew
-# not to curve through that room, because a turn in the middle of a vast
-# dark space is dead reckoning with nothing to steer by, and an about-turn
-# at the far end is the same thing by another name. Driven with the real
-# keys and the game logging where it was, the turn came back seven degrees
-# short, which over seven metres is most of a metre sideways: the walk out
-# landed at x -2.10 instead of -1.43 and the hall walk ran into a cabinet
-# at z 4.23 and stopped there for the remaining seventy seconds. `hold:s`
-# retreats along the line it came in on and the heading never changes, so
-# there is nothing to come back short.
-#
-# **It does stand still in the three dead ends, on purpose and not for the
-# look.** The garden, the solarium and the imaginarium are rooms you go into
-# and come back out of, and the first version curved through both of the two
-# it had then. The solarium's curve is what killed the first take: a loop across a vast dark room, a turn in the
-# middle of it and a hole a metre or so wide to thread on the way back is dead
-# reckoning with nothing to steer by, and the clip went in at twenty seconds
-# and never came out. Thirty seconds of black.
-#
-# Walk in straight, stand, turn on the spot to look, and walk straight back out
-# and the error cancels: the way out is the way in and the standing turns move
-# you nowhere. The same goes for the garden. A person stopping to look at a
-# pond is also what a person does, so nothing is lost but a curve nobody would
-# have noticed.
-#
-# **The imaginarium is the same shape, up six metres, and the foot of its
-# stair is the tightest target in the building.** The dog-leg stands free in
-# the middle of the nook, 1.2 metres wide between x -8.3 and -7.1, and a body
-# is 0.9 across. The first version walked west into the nook for a measured
-# 1.26 seconds and turned south, which is twenty five metres of dead
-# reckoning into a slot with 15 centimetres either side. It threaded it once
-# and missed it the next time: that take spent twenty six seconds of its
-# eighty pressed against blank walls, having never got up at all.
-#
-# So the climb starts from a corner. `pin:w` into the wall of books puts x at
-# -11.75 whatever came before it, `pin:d` into the north wall puts z at
-# -7.54, and a 0.98 second strafe east off that corner lands on the flight.
-# Driven against `--walk`, that strafe works anywhere from 0.88 to 1.08, so
-# 0.98 sits in the middle of a window ten per cent wide and the only error in
-# it is what four metres from a hard wall can add. Both flights are taken
-# square after that, south up the first and east up the second, and each ends
-# against a wall that fixes the next one: the landing's south wall at the top
-# of the first, the room's south wall before the descent, the landing's west
-# wall at the top of the second.
-#
-# **The one turn in the route that is not square is inside the imaginarium**,
-# and it is 118 degrees because that is where the room points. Spec 0038's
-# three frames are one rotation about the room's long diagonal, so the view
-# with all three downs in it at once looks along that diagonal and not along
-# any wall. From the arrival, the far bottom corner where all three second
-# doors are is 27 degrees west of north, and the poster is that view.
-#
-# **Both tight targets square up on a wall rather than aiming at them.** The
-# bookcase and the door to the baths were both approached by dead reckoning
-# first. Both worked in the checker and neither worked twice running on the
-# machine: twenty metres of hall put the sight one bookcase along from the one
-# that opens, and a couple of degrees of heading is the whole of the baths'
-# doorway. A `pin:` walks into the wall on purpose, which fixes the coordinate
-# the error was in, and a short strafe off it lands where it should. Use the
-# building as the datum wherever a target is tight.
-#
-# **The climb and the descent are slower than the ground, by about half.**
-# Spec 0004's budget empties as you go. That is why the walk down into the
-# cellar is held for two seconds rather than the one the distance asks for.
-#
-# **The aim at the bookcase used to be a coin flip.** Its handle was the one
-# book, 8.6 centimetres across, and driving a route at it the window was a
-# single seven centimetre step: on it the sight found the book, a step either
-# side it found nothing, and the clip either opened the wall or walked into
-# it. Spec 0007 widened the handle to the case it stands in on 2026-10-29 and
-# the window is a metre now. Do not narrow it again without reading that spec.
-#
-# **Ninety two seconds, and not because the walk takes that long.** It is
-# sixty six seconds of holds and waits. The difference is in two places and neither is
-# guessable from the table, so it is written down here:
-#
-#   3.6s before the first key, which is the camera opening, the window
-#   lookup, the call to bring it to the front, and the settle above.
-#
-#   0.4s after every key, which is `play`'s own margin and the process it
-#   spawns. Forty eight keys of that is nineteen. A bare wait is a plain sleep
-#   and costs nothing on top of itself.
-#
-# Twenty was tried on a much older route and the walk ran off the end: it
-# reached the corridor and never got to the room it was staged for. That clip
-# was filmed and looked at before anybody noticed, which is what the line at
-# the bottom of this file is for.
-#
-# The route was not guessed. It was driven against the game's own `--walk`,
-# which replays it with no window and refuses one whose turns do not happen or
-# whose walks go nowhere. Three things it found are worth knowing before
-# anybody edits these numbers.
-#
-# The turns have to be square: the arrows turn at 2.4 radians a second, so a
-# quarter turn is 0.655 seconds and a half turn is 1.31, and getting it wrong
-# walks a room at forty degrees to its own axis, scraping a wall for nine
-# seconds. This used to read 1.6 radians and call 1.32 a quarter turn, which
-# is the tilt rate and a half turn. Spec 0044 rounded the corners of a turn
-# and did not change this: the ramps are symmetric, so a hold still sweeps
-# what it always swept, held alone or held with a walk.
-#
-# A hold shorter than the arcade's `AIM_LAGS`, which is 0.2 seconds, sweeps
-# less than it asks for and the checker calls it swallowed. That is not a
-# fault in the route and it is not a fault in the check: a winding that never
-# reaches full speed has no flat middle to make the loss back on. Write turns
-# and tilts at a quarter of a second or more.
-#
-# The way into the nook is one gap at the south end of the hall, between the
-# last cabinet and the nearest plinth. Turn west anywhere from z -6.5 to -7.4
-# and you go through it; a stride either side of that and you walk into a
-# cabinet.
-
-# `enter` is in the list because of the arcade, where it is one of the two
-# ways to work the toy you are looking at and the only one that can be filmed.
-# That building holds the cursor, so the mouse turns the view rather than
-# pointing at anything, and a `shove` would land as a shove of the camera. The
-# arcade's route does not press it any more, having stopped going to the desk,
-# and it stays in the grammar because the next route to go anywhere with a
-# handle on it will want it.
-#
-# Digits are not in that list and cannot be. `1` and `2` pick cork or granite
-# in ripple and neither reaches the window, sent as `keystroke "2"` or as its
-# key code: it stays on cork through either. Letters, space and the arrows all
-# arrive, so it is the digits and not the mechanism, and ripple is filmed
-# dropping cork.
-#
-# Holding is its own verb because it has to be. rolling drives its ball with
-# the arrows held down, and a key sent through System Events is pressed and
-# released inside one frame, so the ball never moved: eight seconds of a ball
-# sitting still, in an example called rolling. A held key is a keyDown, a
-# wait and a keyUp posted through Quartz, which is what `hold` does.
-#
-# And tapping is a third thing, which took chain to find. Holding a key gives
-# one keyDown: a synthetic one does not set the autorepeat going, because
-# autorepeat happens below where these events are posted. rolling cannot tell,
-# since it reads the key as a state it holds. chain adds 4.2 to the ball's
-# speed per event, so a hold is one shove however long it is held, and the
-# clip was a wrecking ball arriving at a wall with nothing behind it and
-# tipping one brick off the top: 38 of 39 left standing, which Jake read off
-# the video as blocks being nudged. Twenty taps a thirtieth of a second apart
-# leave 11 of 39 standing and stretch the chain 3.0 per cent against 1.5.
+# 2026-11-01 after watching a take: the walk out and back was a hundred and
+# sixty of three hundred and forty-eight metres, almost all of it across a
+# dark field, and the leg that crossed it was a lattice of sixty-seven
+# thousand places that stopped the picture for twenty-five seconds. The clip
+# stands at the way in and looks down the planet line now, which is the view
+# that room is arranged for anyway.
 CLIPS=$(cat <<'LIST'
 rolling	2.5	9	5	hold:right:1.4 hold:up:1.2 hold:left:1.4 hold:down:1.2 o
 stacking	4	13	7	shove:0.66:0.58:1.9 2.6 shove:0.26:0.43:1.9 2.6 k
@@ -370,398 +136,72 @@ LIST
 
 say() { printf '%s\n' "$*"; }
 
-# **Compiled once, not once a press.** Every helper below wrote a Swift file
-# and ran it with `swift`, which compiles before it runs. That is a third of
-# a second of nothing between one key and the next, and the arcade's staging
-# is nineteen keys long: the walk came out seven seconds longer than it was
-# written to be, ran off the end of a twenty second clip, and never reached
-# the room it was staged for. The timings in the table are what the game
-# sees now rather than what it saw plus an unknown amount of compiler.
+# Compile the table's keys into the log the engine plays. Spec 0084.
 #
-# The source is only written when it has changed, because `cat` touches the
-# mtime and a file that is always newer than its binary is always rebuilt.
-put_swift() {
-  local src=/tmp/blitzkit-$1.swift
-  local new
-
-  new=$(cat)
-
-  if [ ! -f "$src" ] || [ "$(cat "$src")" != "$new" ]; then
-    printf '%s\n' "$new" > "$src"
-    rm -f "/tmp/blitzkit-$1"
-  fi
-}
-
-swift_run() {
-  local name=$1
-  shift
-  local src=/tmp/blitzkit-$name.swift
-  local bin=/tmp/blitzkit-$name
-
-  [ -x "$bin" ] || swiftc -O "$src" -o "$bin" 2>/dev/null || true
-
-  if [ -x "$bin" ]; then
-    "$bin" "$@"
-  else
-    swift "$src" "$@"
-  fi
-}
-
-# End a run, and mean it. The same two steps as ./refresh-screenshots: a
-# window that ignores a polite ask leaves `wait` blocking for ever.
-stop() {
-  kill "$1" 2>/dev/null || true
-
-  local waited=0
-  while kill -0 "$1" 2>/dev/null && [ "$waited" -lt 20 ]; do
-    sleep 0.1
-    waited=$((waited + 1))
-  done
-
-  kill -9 "$1" 2>/dev/null || true
-  wait "$1" 2>/dev/null || true
-}
-
-# Which avfoundation device the screen is, asked rather than assumed.
+# The one place the grammar above is read. It used to be read here and then
+# posted at the screen as CGEvents, with a table of macOS virtual key codes
+# to go with it; the engine reads a log instead, and the names in the table
+# are the names `KeyboardKey::named` already knows, so the table of codes is
+# gone rather than moved.
 #
-# **Its number moves.** The list is the cameras and then the screens, so
-# the screen's index is however many cameras are plugged in at the time.
-# Written here as 3 it worked all the while a phone was offering itself as
-# a Continuity Camera and failed the moment it stopped: `-i 3` is an
-# invalid index, ffmpeg writes nothing, and the only thing that reaches
-# the log is "nothing came out of the camera", which is also what a
-# sleeping screen looks like. Two takes went to it on 2026-11-01 and the
-# first of them was spent fixing the wrong one of the two.
-screen_device() {
-  ffmpeg -hide_banner -f avfoundation -list_devices true -i "" 2>&1 |
-    sed -n 's/.*\[\([0-9]*\)\] Capture screen 0.*/\1/p' |
-    head -1
-}
+# In awk because the times are fractions and a shell counts in whole numbers.
+compile_keys() {
+  local at=$1 wide=$2 tall=$3
+  shift 3
 
-# Which window, and where it is in points, via CoreGraphics. There is no
-# shell for this.
-#
-# The examples call their windows "blitzkit: <name>", where the games call
-# theirs after the game, which is why this does not take
-# ./refresh-screenshots' function as it stands.
-window_box() {
-  put_swift example-window <<'SWIFT'
-import CoreGraphics
-import Foundation
-let want = (CommandLine.arguments.dropFirst().first ?? "").lowercased()
-let on = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
-for w in on {
-    let name = w[kCGWindowName as String] as? String ?? ""
-    if name.lowercased() == want, let b = w[kCGWindowBounds as String] as? [String: Any] {
-        let id = w[kCGWindowNumber as String] as? Int ?? 0
-        let x = b["X"] as? Double ?? 0, y = b["Y"] as? Double ?? 0
-        let wd = b["Width"] as? Double ?? 0, ht = b["Height"] as? Double ?? 0
-        print("\(id) \(Int(x)) \(Int(y)) \(Int(wd)) \(Int(ht))")
-        break
+  awk -v at="$at" -v wide="$wide" -v tall="$tall" '
+    BEGIN {
+      t = at + 0
+      # How long a key that is tapped rather than held stays down. Two
+      # frames of a sixtieth, so the frame between them has it down: both
+      # events landing before one frame is a press the game never sees.
+      tap = 2 / 60
+
+      print "# compiled from the table in refresh-examples. Spec 0084."
+
+      for (i = 1; i < ARGC; i++) {
+        item = ARGV[i]
+        n = split(item, part, ":")
+
+        if (part[1] == "hold" || part[1] == "pin") {
+          secs = part[n] + 0
+          held = split(part[2], key, "+")
+          # down in the order given and up in the other, which is how a
+          # hand comes off two keys
+          for (j = 1; j <= held; j++) printf "%.4f down %s\n", t, key[j]
+          for (j = held; j >= 1; j--) printf "%.4f up %s\n", t + secs, key[j]
+          t += secs
+        } else if (part[1] == "tap") {
+          many = part[3] + 0
+          gap = part[4] + 0
+          # a tap held longer than the gap to the next one would put its
+          # up after the following down
+          down = (gap > tap) ? tap : gap / 2
+          for (j = 0; j < many; j++) {
+            printf "%.4f down %s\n", t, part[2]
+            printf "%.4f up %s\n", t + down, part[2]
+            t += gap
+          }
+        } else if (part[1] == "shove") {
+          printf "%.4f cursor %.1f %.1f\n", t, part[2] * wide, part[3] * tall
+          printf "%.4f press left\n", t
+          printf "%.4f release left\n", t + part[4]
+          t += part[4] + 0
+        } else if (part[1] == "zoom") {
+          printf "%.4f cursor %.1f %.1f\n", t, wide / 2, tall / 2
+          printf "%.4f wheel 0 %.4f\n", t, part[2] + 0
+        } else if (item ~ /^[0-9]+(\.[0-9]+)?$/) {
+          t += item + 0
+        } else {
+          printf "%.4f down %s\n", t, item
+          printf "%.4f up %s\n", t + tap, item
+          t += tap
+        }
+      }
+
+      exit
     }
-}
-SWIFT
-  swift_run example-window "$1"
-}
-
-# How many pixels there are to a point on the screen being filmed.
-#
-# Worked out rather than assumed, because a window's box comes back in points
-# and the film comes back in pixels. Taking one for the other crops a quarter
-# of the window on a retina screen.
-backing() {
-  local pixels points
-  pixels=$(system_profiler SPDisplaysDataType 2>/dev/null |
-    sed -n 's/.*Resolution: \([0-9]*\) x \([0-9]*\).*/\1/p' | head -1)
-  points=$(osascript -e 'tell application "Finder" to get bounds of window of desktop' |
-    awk -F', *' '{print $3}')
-
-  if [ -n "$pixels" ] && [ -n "$points" ] && [ "$points" -gt 0 ]; then
-    echo $((pixels / points))
-  else
-    echo 2
-  fi
-}
-
-front() {
-  osascript -e "tell application \"System Events\" to tell (first process whose unix id is $1) to set frontmost to true" >/dev/null 2>&1 || true
-}
-
-# **And whether it actually came forward**, which until 2026-11-01 nothing
-# asked. This records the screen cropped to the window's rectangle, so
-# anything sitting on top of it at those coordinates is what gets filmed,
-# and `play` sends its keys to whatever is frontmost rather than to a
-# window. Run while somebody was using the machine, a whole take came out
-# as ninety four seconds of the chat window it was being written in, and
-# the route's keys, two `enter` presses among them, went into that window
-# instead. It reported `1 made`, because nothing here looks at the picture.
-#
-# macOS will not reliably let a background process hold the front while
-# somebody is typing in another app, and that is the answer rather than a
-# bug: nobody can film this while using the machine. So it is asked, and a
-# run that is not in front is a run that does not happen.
-in_front() {
-  [ "$(osascript -e "tell application \"System Events\" to unix id of first process whose frontmost is true" 2>/dev/null)" = "$1" ]
-}
-
-# What macOS calls each key this knows about. The numbers are where the keys
-# sit on the board and there is no arithmetic in them.
-key_code() {
-  case "$1" in
-    space) echo 49 ;;
-    enter) echo 36 ;;
-    left) echo 123 ;;
-    right) echo 124 ;;
-    down) echo 125 ;;
-    up) echo 126 ;;
-    a) echo 0 ;; s) echo 1 ;; d) echo 2 ;; f) echo 3 ;; h) echo 4 ;;
-    g) echo 5 ;; z) echo 6 ;; x) echo 7 ;; c) echo 8 ;; v) echo 9 ;;
-    b) echo 11 ;; q) echo 12 ;; w) echo 13 ;; e) echo 14 ;; r) echo 15 ;;
-    y) echo 16 ;; t) echo 17 ;; o) echo 31 ;; u) echo 32 ;; i) echo 34 ;;
-    p) echo 35 ;; l) echo 37 ;; j) echo 38 ;; k) echo 40 ;; n) echo 45 ;;
-    m) echo 46 ;;
-    *) echo "" ;;
-  esac
-}
-
-# Hold a key down, properly, through Quartz.
-#
-# System Events has no way to say it: its `key code` is a press and a release
-# with nothing in between, which is right for a key that does a thing and
-# wrong for a key that means keep doing this. See the note on the table.
-# Hit a key over and over, as fast as a hand never could.
-#
-# Not the same as holding it: see the note on the table. A key that means do
-# this now wants this, and a key that means keep doing this wants `hold`.
-tap() {
-  local code
-  code=$(key_code "$1")
-  [ -n "$code" ] || { say "   no key code for $1"; return; }
-
-  put_swift tap <<'SWIFT'
-import CoreGraphics
-import Foundation
-let a = CommandLine.arguments.dropFirst()
-guard let code = UInt16(a.first ?? ""), let many = Int(a.dropFirst().first ?? ""),
-      let gap = Double(a.dropFirst(2).first ?? "") else { exit(1) }
-let src = CGEventSource(stateID: .hidSystemState)
-for _ in 0..<many {
-    CGEvent(keyboardEventSource: src, virtualKey: CGKeyCode(code), keyDown: true)?.post(tap: .cghidEventTap)
-    Thread.sleep(forTimeInterval: 0.004)
-    CGEvent(keyboardEventSource: src, virtualKey: CGKeyCode(code), keyDown: false)?.post(tap: .cghidEventTap)
-    Thread.sleep(forTimeInterval: gap)
-}
-SWIFT
-  swift_run tap "$code" "$2" "$3" >/dev/null 2>&1 || true
-}
-
-# Click the window, at a fraction of the way across and down it.
-#
-# Through Quartz, like the keys, and for the same reason: System Events'
-# `click at` reaches these windows as nothing. tower is forty blocks you
-# knock a brick out of to watch fall, and it was filmed standing there for
-# nine seconds, which Jake read off the page as demonstrating nothing.
-#
-# A fraction and not a point, because the window is wherever it opened. The
-# third number is how long the button is held, which is a click left out and
-# a wind up in stacking: hold on a sphere to wind it, let go to shove it.
-shove() {
-  local across=$1 down=$2 held=${3:-0.06}
-  local at_x at_y
-  at_x=$(awk -v x="$WIN_X" -v w="$WIN_W" -v f="$across" 'BEGIN{printf "%d", x + w * f}')
-  at_y=$(awk -v y="$WIN_Y" -v h="$WIN_H" -v f="$down" 'BEGIN{printf "%d", y + h * f}')
-
-  put_swift shove <<'SWIFT'
-import CoreGraphics
-import Foundation
-let a = CommandLine.arguments.dropFirst()
-guard let x = Double(a.first ?? ""), let y = Double(a.dropFirst().first ?? ""),
-      let held = Double(a.dropFirst(2).first ?? "") else { exit(1) }
-let at = CGPoint(x: x, y: y)
-let src = CGEventSource(stateID: .hidSystemState)
-CGEvent(mouseEventSource: src, mouseType: .mouseMoved, mouseCursorPosition: at, mouseButton: .left)?.post(tap: .cghidEventTap)
-Thread.sleep(forTimeInterval: 0.08)
-CGEvent(mouseEventSource: src, mouseType: .leftMouseDown, mouseCursorPosition: at, mouseButton: .left)?.post(tap: .cghidEventTap)
-Thread.sleep(forTimeInterval: held)
-CGEvent(mouseEventSource: src, mouseType: .leftMouseUp, mouseCursorPosition: at, mouseButton: .left)?.post(tap: .cghidEventTap)
-SWIFT
-  swift_run shove "$at_x" "$at_y" "$held" >/dev/null 2>&1 || true
-}
-
-# Put the pointer out of the frame before the camera opens.
-#
-# The recording below asks for no cursor and this macOS draws one anyway, and
-# the pointer stays wherever the last example's shove left it: rolling's still
-# came out on 2026-10-28 with an arrow sitting in the middle of its tray. The
-# top left corner of the screen is above every window's content, so no crop
-# reaches it. An example that shoves or turns the wheel puts the pointer back
-# into its own frame, which is the example working and is meant to be seen.
-park() {
-  put_swift park <<'SWIFT'
-import CoreGraphics
-let src = CGEventSource(stateID: .hidSystemState)
-CGEvent(mouseEventSource: src, mouseType: .mouseMoved,
-        mouseCursorPosition: CGPoint(x: 2, y: 2), mouseButton: .left)?.post(tap: .cghidEventTap)
-SWIFT
-  swift_run park >/dev/null 2>&1 || true
-}
-
-# Turn the wheel over the middle of the window.
-#
-# Most of these put the thing they are about in the middle of the frame and a
-# long way off, with the rest of the window black. A camera that moves is the
-# example's own control and costs nothing to use.
-wheel() {
-  local ticks=$1
-  local at_x at_y
-  at_x=$(awk -v x="$WIN_X" -v w="$WIN_W" 'BEGIN{printf "%d", x + w * 0.5}')
-  at_y=$(awk -v y="$WIN_Y" -v h="$WIN_H" 'BEGIN{printf "%d", y + h * 0.5}')
-
-  put_swift wheel <<'SWIFT'
-import CoreGraphics
-import Foundation
-let a = CommandLine.arguments.dropFirst()
-guard let x = Double(a.first ?? ""), let y = Double(a.dropFirst().first ?? ""),
-      let ticks = Int(a.dropFirst(2).first ?? "") else { exit(1) }
-let at = CGPoint(x: x, y: y)
-let src = CGEventSource(stateID: .hidSystemState)
-CGEvent(mouseEventSource: src, mouseType: .mouseMoved, mouseCursorPosition: at, mouseButton: .left)?.post(tap: .cghidEventTap)
-Thread.sleep(forTimeInterval: 0.05)
-for _ in 0..<abs(ticks) {
-    let e = CGEvent(scrollWheelEvent2Source: src, units: .line, wheelCount: 1,
-                    wheel1: Int32(ticks > 0 ? 1 : -1), wheel2: 0, wheel3: 0)
-    e?.location = at
-    e?.post(tap: .cghidEventTap)
-    Thread.sleep(forTimeInterval: 0.03)
-}
-SWIFT
-  swift_run wheel "$at_x" "$at_y" "$ticks" >/dev/null 2>&1 || true
-}
-
-# Holds one key, or several at once joined by a plus, for that long.
-#
-# **Several at once is what walks a corner.** A route that stops, pivots and
-# sets off again reads as a machine however smooth the pivot is, which is what
-# Jake said after watching the arcade turn with spec 0044's easing in it. The
-# building turns you with the arrows and walks you with w, both off held keys,
-# so `hold:w+left:0.8` is a walk that curves. Down in the order given and up
-# in the other, which is how a hand comes off two keys.
-hold() {
-  local codes=() code key
-  local old=$IFS
-  IFS='+'
-  # shellcheck disable=SC2206
-  local keys=($1)
-  IFS=$old
-
-  for key in "${keys[@]}"; do
-    code=$(key_code "$key")
-    [ -n "$code" ] || { say "   no key code for $key"; return; }
-    codes+=("$code")
-  done
-
-  put_swift hold <<'SWIFT'
-import CoreGraphics
-import Foundation
-let args = Array(CommandLine.arguments.dropFirst())
-guard let secs = Double(args.last ?? "") else { exit(1) }
-let codes = args.dropLast().compactMap { UInt16($0) }
-guard !codes.isEmpty else { exit(1) }
-let src = CGEventSource(stateID: .hidSystemState)
-for code in codes {
-    CGEvent(keyboardEventSource: src, virtualKey: CGKeyCode(code), keyDown: true)?.post(tap: .cghidEventTap)
-}
-Thread.sleep(forTimeInterval: secs)
-for code in codes.reversed() {
-    CGEvent(keyboardEventSource: src, virtualKey: CGKeyCode(code), keyDown: false)?.post(tap: .cghidEventTap)
-}
-SWIFT
-  swift_run hold "${codes[@]}" "$2" >/dev/null 2>&1 || true
-}
-
-press() {
-  case "$1" in
-    space) osascript -e 'tell application "System Events" to key code 49' >/dev/null 2>&1 || true ;;
-    # by its code, like the four above. `keystroke "enter"` types the five
-    # letters of the word, which in the arcade is five keys that do other
-    # things: the first clip filmed with it worked a toy and typed at the
-    # building instead of opening the room it was aiming at.
-    enter) osascript -e 'tell application "System Events" to key code 36' >/dev/null 2>&1 || true ;;
-    left) osascript -e 'tell application "System Events" to key code 123' >/dev/null 2>&1 || true ;;
-    right) osascript -e 'tell application "System Events" to key code 124' >/dev/null 2>&1 || true ;;
-    down) osascript -e 'tell application "System Events" to key code 125' >/dev/null 2>&1 || true ;;
-    up) osascript -e 'tell application "System Events" to key code 126' >/dev/null 2>&1 || true ;;
-    *) osascript -e "tell application \"System Events\" to keystroke \"$1\"" >/dev/null 2>&1 || true ;;
-  esac
-}
-
-# Press a run's keys on its own clock, while the camera is running.
-#
-# Fronted before every key and not once before the lot. Once was enough on a
-# quiet machine and not on a busy one: a run came out with one ball in the
-# pool instead of four and its title bar grey in the picture, because the
-# window had stopped being frontmost partway and the rest of the keys went
-# somewhere else.
-#
-# **The gap between two keys is what spec 0044's winding off runs in.** The
-# arcade eases its arrows on and off over `AIM_LAGS`, which is 0.2 seconds,
-# and a hold only sweeps what it asks for if that winding off finishes before
-# the next key goes down.
-#
-# The gap is this sleep, the `front` above it, and the spawning and exiting of
-# the process that posts the key: about four tenths a key, measured off a
-# clip rather than reasoned about. That is comfortably over 0.2.
-#
-# It is also a soft edge rather than a sharp one, which is worth knowing
-# before anybody tunes either number. Smoothstep reaches nought with no slope,
-# so the last of the winding off is where the view is barely moving: cutting
-# the final twentieth of it costs about a thousandth of the turn. This gets
-# dangerous when the gap is less than half of `AIM_LAGS`, not when it is a
-# hair under.
-#
-# Do not raise this sleep to buy room. It is every example's gap, and two of
-# them have a tenth of a second of slack in their film: teapot-glass runs 8.9
-# seconds of keys inside 9, and rolling 10.3 inside 11. Raising it means
-# widening those films in the same change.
-play() {
-  local pid=$1
-  shift
-
-  for key in "$@"; do
-    case "$key" in
-      [0-9]*) sleep "$key" ;;
-      hold:*|pin:*)
-        front "$pid"
-        sleep 0.15
-        hold "$(echo "$key" | cut -d: -f2)" "$(echo "$key" | cut -d: -f3)"
-        ;;
-      tap:*)
-        front "$pid"
-        sleep 0.15
-        tap "$(echo "$key" | cut -d: -f2)" "$(echo "$key" | cut -d: -f3)" \
-          "$(echo "$key" | cut -d: -f4)"
-        ;;
-      zoom:*)
-        front "$pid"
-        sleep 0.15
-        wheel "$(echo "$key" | cut -d: -f2)"
-        sleep 0.2
-        ;;
-      shove:*)
-        front "$pid"
-        sleep 0.15
-        shove "$(echo "$key" | cut -d: -f2)" "$(echo "$key" | cut -d: -f3)" \
-          "$(echo "$key" | cut -d: -f4)"
-        sleep 0.2
-        ;;
-      *)
-        front "$pid"
-        sleep 0.15
-        press "$key"
-        sleep 0.15
-        ;;
-    esac
-  done
+  ' "$@"
 }
 
 wanted=("$@")
@@ -782,8 +222,12 @@ ARCADE=$TARGET/arcade
 # is writing to something the next build overwrites, which is where the first
 # version of this put fourteen pictures.
 OUT=blitzkit/media
-SCALE=$(backing)
-say "   $SCALE pixels to a point"
+
+# Logs go here and not into the repos: they are compiled from the table every
+# run, so a committed one would be a second copy of the table that nobody
+# reads.
+LOGS=$(mktemp -d)
+trap 'rm -rf "$LOGS"' EXIT
 
 made=0
 missed=0
@@ -801,12 +245,6 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
 
   say "== $name"
 
-  # **A route of places rather than keys, per spec 0049.** The column says
-  # `film:clip` and the route itself is `tour::clip`, which reads the
-  # building's own accessors for every place it names: the pond, the
-  # planets, the bookcase, the baths, the pool. Written out here it would be
-  # a second account of where all of those are, and this file is the last
-  # place that should hold one.
   tour=""
   case "${keys:-}" in
     film:*)
@@ -826,10 +264,14 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # it is filmed like them.
   if [ "$runs" = arcade ]; then
     binary=$ARCADE
-    titled="arcade"
   else
     binary="$TARGET/examples/$runs"
-    titled="blitzkit: $runs"
+  fi
+
+  if [ ! -x "$binary" ]; then
+    say "   there is no $binary to run"
+    missed=$((missed + 1))
+    continue
   fi
 
   # **Asked whether the route still works before anything is filmed.** Spec
@@ -840,159 +282,101 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   #
   # The game is asked rather than this file knowing the rule, because the rule
   # is the game's and a copy of it here would be a second account of which
-  # arrows are yours. The route goes the other way for the same reason: it is
-  # written once, in the table above, and handed over.
+  # arrows are yours.
   #
-  # It answers for the walking too: a held w that covers less than half the
-  # ground it asked for was stopped by something, which is how the hotel's
-  # threshold turned up. It stops you dead on one heading and lets you
-  # through on both of the ones either side of it.
-  #
-  # Only the arcade, which is the only one with a panel and the only one that
-  # answers this. The rest open a window at anything they do not recognise.
-  # A planned route has no keys to check and is not checked here: what says
-  # it goes where it says is `tour::tests::the_clip_s_tour_gets_all_the_way_round`,
+  # A planned route has no keys to check and is not checked here: what says it
+  # goes where it says is `tour::tests::the_clip_s_tour_gets_all_the_way_round`,
   # which plans every leg of it in the gate, works the two doors on the way,
-  # and names the legs that fail. That is a better answer than this was, and
-  # it is given before anything is built rather than after.
+  # and names the legs that fail.
   if [ "$runs" = arcade ] && [ -n "${keys:-}" ] && ! "$binary" "--walk=$keys"; then
     say "   the staged route does not go where it says, so nothing was filmed"
     missed=$((missed + 1))
     continue
   fi
 
-  # Opened once to find out where its window lands, then closed, because the
-  # camera has to be running before the thing it is filming starts.
-  #
-  # **The opening is the shot.** Filmed the other way round, with the window
-  # up and the camera opening a second later, three of these came out as
-  # photographs with a soundtrack: rolling settled before the first frame and
-  # changed by 85 decibels of nothing across four seconds, and stacking and
-  # tower were not much better. What a tower of forty blocks does is fall
-  # into place, and that had been happening off camera every time.
-  #
-  # The window goes back where it was, because winit puts it there: these all
-  # ask for the same size and get the same place. Checked rather than hoped,
-  # and a run whose window moves says so.
-  "$binary" >/dev/null 2>&1 </dev/null &
-  finding=$!
-  sleep 1.5
-  read -r id x y w h <<< "$(window_box "$titled" || true)"
-  stop "$finding"
-
-  if [ -z "${id:-}" ]; then
-    say "   no window called '$titled' came up"
+  # How big a frame is, asked of the thing that draws it. Raw pixels carry no
+  # size, so ffmpeg has to be told one, and it has to be the engine's.
+  read -r wide tall <<< "$("$binary" --film-size)"
+  if [ -z "${tall:-}" ]; then
+    say "   $name would not say how big its frames are"
     missed=$((missed + 1))
     continue
   fi
 
-  WIN_X=$x
-  WIN_Y=$y
-  WIN_W=$w
-  WIN_H=$h
-
-  # -nostdin, and every child gets /dev/null besides. The table this loop is
-  # reading comes in on stdin, and ffmpeg reads stdin for keyboard commands:
-  # it ate the rest of the list, so the run went from the first example
-  # straight to a line that began "7" and died on it.
-  # recorded fast and rough, then cut and encoded properly. One pass cannot
-  # do it: the front of the recording is the desktop behind the window, and
-  # trimming that off a file still being written is not a thing.
-  park
-  # **A sleeping or locked screen has no screen to capture.** avfoundation
-  # lists "Capture screen 0" as device 3 only while the display is awake and
-  # the session unlocked, and ffmpeg against a device that is not there
-  # writes an empty file, which comes out below as "nothing came out of the
-  # camera". This machine sleeps its display after two minutes on battery,
-  # which is shorter than the arcade's take, so three takes in a row were
-  # lost to it on 2026-10-31 and the last of them to the lock that followed.
-  # `caffeinate -d` stops the next sleep and does not undo the last one.
-  # `caffeinate -u` declares user activity and wakes it; nothing here can
-  # unlock it.
-  raw=$(mktemp -t "$name").mp4
-  ffmpeg -nostdin -hide_banner -loglevel error -f avfoundation -capture_cursor 0 \
-    -framerate "$RATE" -i "$(screen_device)" -t "$((seconds + PREROLL))" \
-    -vf "crop=$((w * SCALE)):$((h * SCALE)):$((x * SCALE)):$((y * SCALE)),scale=$WIDE:-2" \
-    -c:v libx264 -preset ultrafast -crf 16 -pix_fmt yuv420p \
-    "$raw" -y >/dev/null 2>&1 </dev/null &
-  filming=$!
-
-  # the camera takes about a second to open, and the run starts once it has
-  sleep 1.2
+  log="$LOGS/$name.play"
   # shellcheck disable=SC2086
-  "$binary" $tour >/dev/null 2>"${WHERE_LOG:-/dev/null}" </dev/null &
-  running=$!
-  sleep 0.8
+  compile_keys "$settle" "$wide" "$tall" ${keys:-} > "$log"
 
-  read -r again rx ry _ _ <<< "$(window_box "$titled" || true)"
-  if [ -n "${again:-}" ] && { [ "$rx" != "$x" ] || [ "$ry" != "$y" ]; }; then
-    say "   its window came back at $rx $ry rather than $x $y, so the crop is off"
-  fi
+  # One run, drawn and encoded as it goes, through a fifo.
+  #
+  # **Not the run's stdout**, which was the first way and lasted one run. The
+  # load example writes a row of comma separated costs per frame, so its film
+  # came out with column headings in the middle of a frame and ffmpeg gave up
+  # on it. A game is allowed to print. Down a fifo of its own, whatever it
+  # says goes to /dev/null with the rest of its talk.
+  #
+  # -nostdin because the table this loop is reading comes in on this shell's
+  # stdin and ffmpeg reads stdin for keyboard commands: it ate the rest of the
+  # list once, and the run went from the first example straight to a line
+  # beginning "7" and died on it.
+  frames="$LOGS/$name.rgba"
+  rm -f "$frames"
+  mkfifo "$frames"
 
-  front "$running"
-  sleep "$settle"
-
-  if ! in_front "$running"; then
-    say "   it is not in front, so the camera and the keys would both go"
-    say "   somewhere else. Nothing was filmed. Leave the machine alone and"
-    say "   run this again."
-    stop "$running"
-    rm -f "$raw"
-    missed=$((missed + 1))
-    continue
-  fi
+  ffmpeg -nostdin -hide_banner -loglevel error \
+    -f rawvideo -pix_fmt rgba -s "${wide}x${tall}" -framerate 60 -i "$frames" \
+    -r "$RATE" -c:v libx264 -preset slow -crf "$QUALITY" \
+    -pix_fmt yuv420p -movflags +faststart -an "$OUT/$name.mp4" -y </dev/null &
+  encoding=$!
 
   # shellcheck disable=SC2086
-  [ -n "${keys:-}" ] && play "$running" $keys
+  "$binary" $tour --play "$log" --film-to "$frames" --film-for "$seconds" \
+    >/dev/null 2>&1 </dev/null || true
 
-  # **And fronted once more, for the tail.** `play` fronts the window before
-  # every key and then stops, so from the last key to the end of the film
-  # nothing is holding it up. Whatever comes forward in that gap is filmed
-  # instead, cropped to the window's own rectangle: the arcade's clip ended on
-  # two seconds of the chat window it was being written in. The longer the
-  # rest at the end of a route, the wider that hole.
-  front "$running"
-
-  wait "$filming" 2>/dev/null || true
-  stop "$running"
-
-  if [ ! -s "$raw" ]; then
-    say "   nothing came out of the camera"
-    rm -f "$raw"
+  if ! wait "$encoding"; then
+    say "   nothing came out of it"
+    rm -f "$frames"
     missed=$((missed + 1))
     continue
   fi
-
-  ffmpeg -nostdin -hide_banner -loglevel error -ss "$PREROLL" -i "$raw" \
-    -c:v libx264 -preset slow -crf "$QUALITY" -pix_fmt yuv420p -movflags +faststart \
-    -an "$OUT/$name.mp4" -y >/dev/null 2>&1 </dev/null
-  rm -f "$raw"
+  rm -f "$frames"
 
   # and a still out of the moment this one is about, which is the poster the
   # clip shows before it loads and the picture a readme can use.
   #
-  # Written down per example rather than taken at some fraction of the
-  # length. Six tenths of the way through chain is a floor covered in bricks
-  # with the ball swung back up out of frame, which is a picture of the
-  # aftermath and not of a wrecking ball. Not the first frame either, which
-  # for a thing about to happen is a picture of nothing happening.
+  # Pulled out of the clip rather than drawn again.
+  #
+  # Drawing it again was the first way and is the better picture: no x264 and
+  # no chroma subsampling between the engine and the file. It is wrong for one
+  # of these and the one is enough. `--picture-to` runs the frames and draws
+  # only the last, so a game that puts up what the last frame cost has never
+  # had a frame to cost: load's readout came out as nought draws and nought
+  # triangles at every second tried, where the clip of the same run has the
+  # numbers. Spec 0084 says what that is and leaves it.
+  #
+  # The clip is the same bytes every time, so the frame taken out of it is
+  # too.
+  #
+  # Written down per example rather than taken at some fraction of the length.
+  # Six tenths of the way through chain is a floor covered in bricks with the
+  # ball swung back up out of frame, which is a picture of the aftermath and
+  # not of a wrecking ball. Not the first frame either, which for a thing
+  # about to happen is a picture of nothing happening.
   #
   # Pick a second the picture holds across a whole swing rather than one that
   # catches an instant. chain's was 3.4, a few tenths before the ball struck,
   # and on 2026-10-28 a take ran the strike late and the still came out as a
   # wall nobody had touched. It is 7.4 now: the ball is down at the bottom of
   # its arc and the wall is in pieces, which stays true however the swing
-  # drifts. Where the clip is a thing happening once, the poster wants the
-  # state it leaves behind, not the frame it happens in.
+  # drifts.
   #
   # The arcade's was 10, which on the route as it stands is the solarium: a
   # black field with one word on it, as the still that stands for a game
   # called arcade. It is 16 now, the walk down the hall, with cabinets either
-  # side and three of the games named on them. That walk runs from 14 to 17.5
-  # and every second of it is the same picture, so a take that drifts still
-  # lands on one.
+  # side and three of the games named on them.
+  # shellcheck disable=SC2086
   ffmpeg -nostdin -hide_banner -loglevel error -ss "${poster:-1}" \
-    -i "$OUT/$name.mp4" -vframes 1 "$OUT/$name.png" -y >/dev/null 2>&1 </dev/null
+    -i "$OUT/$name.mp4" -frames:v 1 "$OUT/$name.png" -y </dev/null
 
   # written down as it is filmed, so ./check-fresh can say how far behind this
   # clip is without anybody having to remember. The arcade has a repo of its
@@ -1004,9 +388,35 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
     ./stamp "$OUT/MADE" "$name.mp4" "$name.png"
   fi
 
-  say "   $OUT/$name.mp4 and $OUT/$name.png, $WIDE wide"
+  say "   $OUT/$name.mp4 and $OUT/$name.png, $wide wide"
   made=$((made + 1))
 done <<< "$CLIPS"
+
+# And the sixteen as one picture, for a readme or a page that wants to show
+# what is here before it says anything about it.
+#
+# Built from every poster on disc rather than from the ones this run touched,
+# so a run over one example still leaves a grid that matches the rest. There
+# is nothing to stamp for the same reason: a grid cannot be staler than its
+# own tiles.
+say "== the grid"
+posters=()
+while IFS=$'\t' read -r name _; do
+  [ -n "$name" ] || continue
+  [ -f "$OUT/$name.png" ] && posters+=("$OUT/$name.png")
+done <<< "$CLIPS"
+
+if [ ${#posters[@]} -eq 0 ]; then
+  say "   no posters to lay out"
+elif ! ./contact-sheet "$OUT/examples.png" "${posters[@]}"; then
+  say "   the grid could not be laid out"
+  missed=$((missed + 1))
+else
+  # Stamped against the engine like the posters it is made of, and with no
+  # bakes: everything in it came out of this repo, so the one commit answers
+  # for the grid and for every tile in it at once.
+  ./stamp "$OUT/MADE" examples.png
+fi
 
 say ""
 if [ "$missed" -gt 0 ]; then
@@ -1014,5 +424,4 @@ if [ "$missed" -gt 0 ]; then
 else
   say "$made made."
 fi
-say "Watch them before committing. A staged clip can stage the wrong thing,"
-say "and the keys go to whatever is frontmost, which is not always the window."
+say "Watch them before committing: a staged clip can stage the wrong thing."

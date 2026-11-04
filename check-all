@@ -152,6 +152,14 @@ if ! ./check-tunnel; then
   failed+=("tunnel/slider drift")
 fi
 
+# A film is raw pixels with nothing in it saying where a frame starts, so the
+# two ways it goes wrong both come out as a clip nobody can read rather than
+# as an error. Spec 0084.
+echo "== films"
+if ! ./check-film; then
+  failed+=("a film is not frames")
+fi
+
 echo
 if [ ${#failed[@]} -eq 0 ]; then
   echo "all ${#repos[@]} crates pass, nothing ships in Claude's words, and the tunnel example matches slider"

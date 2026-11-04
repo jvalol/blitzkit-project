@@ -198,6 +198,34 @@ for repo in "${wanted[@]}"; do
   done <<< "$shots"
 done
 
+# And the games as one picture, for a readme or a page that wants to show
+# what is here before it says anything about it.
+#
+# It goes in the engine's media because that is the folder the site serves
+# and the one both readmes link into, and one picture in one place beats a
+# copy in each. Built from every game on disc rather than from the ones this
+# run touched, and read off ./list-repos rather than a glob: games/aleph has
+# a screenshot and is parked, so a glob puts a game nobody ships at the top
+# of the readme.
+say "== the grid"
+shots=()
+while read -r name; do
+  [ -f "games/$name/media/screenshot.png" ] && shots+=("games/$name/media/screenshot.png")
+done < <(./list-repos games)
+
+if [ ${#shots[@]} -eq 0 ]; then
+  say "   no screenshots to lay out"
+elif ! ./contact-sheet blitzkit/media/games.png "${shots[@]}"; then
+  say "   the grid could not be laid out"
+else
+  # **The one thing in the engine's media made out of other repos**, so it is
+  # the one that needs `--bakes`: a sha of the thirteen screenshots it is
+  # built from. Without it a game could take a new shot and this grid would
+  # go on showing the old one with the gate calling it current, which is the
+  # fault ./stamp was written for.
+  ./stamp blitzkit/media/MADE --bakes 'games/*/media/screenshot.png' games.png
+fi
+
 say ""
 if [ "$same" -gt 0 ]; then
   say "$same already right, left alone."
