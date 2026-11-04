@@ -10,13 +10,24 @@
 # --screenshots with a name and a file per line. Which pictures a game has is
 # the game's to know; this only takes them.
 #
-# macOS only: it photographs a real window, because nothing in the engine
-# renders to a file. The window is on screen while this runs.
+# **It renders rather than photographs.** It used `screencapture` on a real
+# window, which was macOS only, needed a Screen Recording permission the
+# shell it runs in may not have, and never came back with the same bytes
+# twice: four of the thirteen churned on every release from capture noise
+# alone, and the 0.15.0 release died outright because the shell it was
+# started in had no grant.
+#
+# The engine could do this the whole time. Every picture test in the project
+# renders a frame with no window and writes it to a file; the line that used
+# to be here saying nothing in the engine renders to a file was true when it
+# was written and stopped being true on 2026-11-02. `--picture-to` is that,
+# handed to every game by `start`. Spec 0079.
+#
+# No window opens now, so nothing has to be waited for, found by title, or
+# killed, and two runs give the same bytes.
 set -euo pipefail
 cd "$(dirname "$0")"
 
-WIDE=1200
-SETTLE=${SETTLE:-5}
 
 # How long to wait for a game to answer a question before taking the silence
 # as the answer.
@@ -82,25 +93,6 @@ staged() {
   done < <(./list-repos all)
 }
 
-# The window id for a title, via CoreGraphics. There is no shell for this.
-window_id() {
-  cat > /tmp/blitzkit-window.swift <<SWIFT
-import CoreGraphics
-import Foundation
-let want = (CommandLine.arguments.dropFirst().first ?? "").lowercased()
-let on = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
-for w in on {
-    let name = w[kCGWindowName as String] as? String ?? ""
-    let owner = w[kCGWindowOwnerName as String] as? String ?? ""
-    if name.lowercased() == want || owner.lowercased() == want {
-        print(w[kCGWindowNumber as String] as? Int ?? 0)
-        break
-    }
-}
-SWIFT
-  swift /tmp/blitzkit-window.swift "$1"
-}
-
 wanted=("$@")
 if [ ${#wanted[@]} -eq 0 ]; then
   while read -r repo; do wanted+=("$repo"); done < <(staged)
@@ -155,28 +147,23 @@ for repo in "${wanted[@]}"; do
         ;;
     esac
 
+    # it runs the staging, draws one frame and exits, so there is nothing
+    # to wait for and nothing to kill. The size is the engine's
+    # PICTURE_SIZE, said there rather than here.
     if [ -n "$want" ]; then
-      "./target/release/$name" "--screenshot=$want" >/dev/null 2>&1 &
+      "./target/release/$name" "--screenshot=$want" --picture-to "$repo/$file" \
+        >/dev/null 2>&1 || true
     else
-      "./target/release/$name" --screenshot >/dev/null 2>&1 &
+      "./target/release/$name" --screenshot --picture-to "$repo/$file" \
+        >/dev/null 2>&1 || true
     fi
-    running=$!
-    sleep "$SETTLE"
 
-    id=$(window_id "$name" || true)
-    if [ -z "$id" ]; then
-      say "   no window called $name came up for ${want:-the staged shot}"
-      stop "$running"
+    if [ ! -f "$repo/$file" ]; then
+      say "   $name drew nothing for ${want:-the staged shot}"
       continue
     fi
 
-    raw=$(mktemp -t "$name").png
-    screencapture -x -o -l "$id" "$raw"
-    sips --resampleWidth "$WIDE" "$raw" --out "$repo/$file" >/dev/null
-    rm -f "$raw"
-    stop "$running"
-
-    say "   $repo/$file, $WIDE wide"
+    say "   $repo/$file"
     shot=$((shot + 1))
   done <<< "$shots"
 done

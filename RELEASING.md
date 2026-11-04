@@ -85,5 +85,8 @@ frame rarely shows what the game is about. pong serves itself, carom takes a
 shot and lets it settle, lantern puts a candle down and steps back to look at
 it. Why each one stages what it does is in that game's own source.
 
-macOS only. It photographs a real window, because nothing in the engine renders
-to a file.
+It renders rather than photographs. `start` takes `--picture-to`, draws one
+frame with no window open and writes it, which is what every picture test in
+this project has done since spec 0062 and what the line here used to deny.
+Two runs give the same bytes, it needs no Screen Recording permission, and it
+is not macOS only. Spec 0079.
