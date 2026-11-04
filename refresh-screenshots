@@ -24,7 +24,15 @@
 # handed to every game by `start`. Spec 0079.
 #
 # No window opens now, so nothing has to be waited for, found by title, or
-# killed, and two runs give the same bytes.
+# killed.
+#
+# **Two runs give the same bytes for every game but one.** tessera's panel
+# labels come out with different antialiasing about a third of the time:
+# 349 pixels of 1.1 million, the same words and the same numbers, nothing of
+# the board moved. That was still enough to put a picture in the 0.16.0
+# release that nobody could tell from the one it replaced. So the engine
+# leaves a file alone that already holds the picture, to the same tolerance
+# a picture test uses, and this says which ones it left. Spec 0083.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -83,6 +91,15 @@ stop() {
 
 say() { printf '%s\n' "$*"; }
 
+# What is in a file, or nothing at all when it is not there yet.
+sha() {
+  if [ -f "$1" ]; then
+    shasum -a 256 "$1" | cut -d' ' -f1
+  else
+    printf 'not there\n'
+  fi
+}
+
 # Which repos can stage a shot. The disk is the list, as it is for check-all.
 staged() {
   while read -r repo; do
@@ -104,6 +121,7 @@ if [ ${#wanted[@]} -eq 0 ]; then
 fi
 
 shot=0
+same=0
 for repo in "${wanted[@]}"; do
   name=$(basename "$repo")
   if ! grep -rqF -- '--screenshot' "$repo/src" 2>/dev/null; then
@@ -147,6 +165,12 @@ for repo in "${wanted[@]}"; do
         ;;
     esac
 
+    # What is there now, so this can say afterwards whether it moved. The
+    # engine leaves a file alone that already holds the picture, per spec
+    # 0083, and a line saying a file was regenerated when it was not is the
+    # kind of thing nobody checks twice.
+    was=$(sha "$repo/$file")
+
     # it runs the staging, draws one frame and exits, so there is nothing
     # to wait for and nothing to kill. The size is the engine's
     # PICTURE_SIZE, said there rather than here.
@@ -163,10 +187,21 @@ for repo in "${wanted[@]}"; do
       continue
     fi
 
+    if [ "$(sha "$repo/$file")" = "$was" ]; then
+      say "   $repo/$file is already the picture it draws"
+      same=$((same + 1))
+      continue
+    fi
+
     say "   $repo/$file"
     shot=$((shot + 1))
   done <<< "$shots"
 done
 
 say ""
-say "$shot regenerated. Look at them before committing: a staged shot can stage the wrong thing."
+if [ "$same" -gt 0 ]; then
+  say "$same already right, left alone."
+fi
+if [ "$shot" -gt 0 ]; then
+  say "$shot regenerated. Look at them before committing: a staged shot can stage the wrong thing."
+fi

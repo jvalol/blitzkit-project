@@ -88,5 +88,10 @@ it. Why each one stages what it does is in that game's own source.
 It renders rather than photographs. `start` takes `--picture-to`, draws one
 frame with no window open and writes it, which is what every picture test in
 this project has done since spec 0062 and what the line here used to deny.
-Two runs give the same bytes, it needs no Screen Recording permission, and it
-is not macOS only. Spec 0079.
+It needs no Screen Recording permission and it is not macOS only. Spec 0079.
+
+Two runs give the same bytes for thirteen of the fourteen staged shots.
+tessera's panel labels come out two ways, which put a picture in 0.16.0 that
+nobody could tell from the one it replaced, so the engine now leaves a file
+alone that already holds the picture and `refresh-screenshots` says which ones
+it left. Spec 0083.
