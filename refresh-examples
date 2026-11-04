@@ -349,20 +349,20 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # and a still out of the moment this one is about, which is the poster the
   # clip shows before it loads and the picture a readme can use.
   #
-  # Pulled out of the clip rather than drawn again.
+  # Drawn again rather than pulled out of the clip, so it is the frame the
+  # engine made rather than that frame through x264 and back out of yuv420.
   #
-  # Drawing it again was the first way and is the better picture: no x264 and
-  # no chroma subsampling between the engine and the file. It is wrong for one
-  # of these and the one is enough. `--picture-to` runs the frames and draws
-  # only the last, so a game that puts up what the last frame cost has never
+  # It went the other way for a day. `--picture-to` ran the frames and drew
+  # only the last, so a game that puts up what the last frame cost had never
   # had a frame to cost: load's readout came out as nought draws and nought
-  # triangles at every second tried, where the clip of the same run has the
-  # numbers. Spec 0084 says what that is and leaves it.
+  # triangles at every second tried. Spec 0085 made a picture draw every
+  # frame like a film does, which costs almost nothing, because what a film
+  # pays for is reading each frame back rather than drawing it: the arcade's
+  # 46 seconds went from 11.37 to 11.61.
   #
-  # The clip is the same bytes every time for fourteen of the sixteen, so
-  # the frame taken out of it is too. For menger and load it is not, and a
-  # poster that moves with the clip is the least of what that costs. Spec
-  # 0084.
+  # Drawn is now the better of the two for a second reason. menger and load
+  # do not film the same twice, so a frame cut out of their clips moves with
+  # them; a picture of either is byte for byte the same every run.
   #
   # Written down per example rather than taken at some fraction of the length.
   # Six tenths of the way through chain is a floor covered in bricks with the
@@ -382,8 +382,9 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # called arcade. It is 16 now, the walk down the hall, with cabinets either
   # side and three of the games named on them.
   # shellcheck disable=SC2086
-  ffmpeg -nostdin -hide_banner -loglevel error -ss "${poster:-1}" \
-    -i "$OUT/$name.mp4" -frames:v 1 "$OUT/$name.png" -y </dev/null
+  # shellcheck disable=SC2086
+  "$binary" $tour --play "$log" --picture-to "$OUT/$name.png" \
+    --picture-for "${poster:-1}" >/dev/null 2>&1
 
   # written down as it is filmed, so ./check-fresh can say how far behind this
   # clip is without anybody having to remember. The arcade has a repo of its
