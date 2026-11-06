@@ -10,7 +10,23 @@
 # them as a gate, because pushing blitzkit publishes the site and a stale
 # build there is a room that is simply missing.
 #
-# Exits nonzero only if asked to with --strict, which the hook uses.
+# Exits nonzero only if asked to with --strict, which the hook and
+# ./check-all use.
+#
+# **Two reports and not one, because only one of them is a gate.** This
+# counted derived files behind the engine and files the site serves that
+# do not match disc into the same number, so a gate failing on it would
+# fail on a train: the second half fetches the live site and says nothing
+# at all with no network.
+#
+# The first half needs nothing but the repo. It is the one that answers
+# "is what is on disc built from this engine", which is the question
+# ./check-all should have been failing on all along and was not: it called
+# this without --strict and without reading the status, so the gate
+# printed "36 behind the engine" and "all 16 crates pass" in the same run.
+# Jake, 2026-11-06, on the tooling feeling disjointed.
+#
+# So `behind` is local and fails, and `adrift` is the site and reports.
 
 set -uo pipefail
 
@@ -18,6 +34,7 @@ strict=0
 [ "${1:-}" = --strict ] && strict=1
 
 behind=0
+adrift=0
 unwritten=0
 
 # how many commits since a given one have touched what this thing is made
@@ -88,11 +105,16 @@ behind_source() {
     -- . ':(exclude)specs' ':(exclude)*.md' 2>/dev/null || echo "?"
 }
 
+# **And it says who makes the thing it is reporting on.** This printed one
+# line naming ./refresh-examples and ./build-web whatever was stale, and
+# games.png is made by ./refresh-screenshots. Following the instruction
+# did nothing and finding the owner took reading three scripts. A report
+# that names the wrong fix is worse than one that names none.
 look() {
-  local manifest=$1 what=$2 dir
+  local manifest=$1 what=$2 made_by=$3 dir
   dir=$(dirname "$manifest")
 
-  echo "== $what"
+  echo "== $what  [$made_by]"
 
   if [ ! -f "$manifest" ]; then
     echo "   nothing has been written down yet, so nothing can be said"
@@ -263,16 +285,25 @@ serving() {
         echo "   every clip, still and browser build matches what is here"
     else
         printf '%s\n' "$said" | sort
-        behind=$((behind + $(printf '%s\n' "$said" | grep -c .)))
+        adrift=$((adrift + $(printf '%s\n' "$said" | grep -c .)))
     fi
 }
 
-look blitzkit/media/MADE "the engine's clips and stills"
+look blitzkit/media/MADE "the engine's clips and stills" \
+  "./refresh-examples for the clips, ./refresh-screenshots for games.png"
 echo
-look blitzkit/web/MADE "the examples built for a browser"
+look blitzkit/web/MADE "the examples built for a browser" "./build-web"
 echo
 serving
 echo
+
+# **The site's half is said apart and never fails.** It needs the network
+# and reports nothing without one, so a gate that failed on it would fail
+# on a train. It is also the half that is expected to be wrong just
+# before a push, which is the moment the push is about to fix.
+if [ "$adrift" != 0 ]; then
+  echo "$adrift the site serves differently. A push of blitzkit publishes what is here."
+fi
 
 if [ "$unwritten" != 0 ]; then
   echo "$unwritten of the two manifests is missing, so this cannot say much yet."
@@ -280,7 +311,7 @@ if [ "$unwritten" != 0 ]; then
 elif [ "$behind" = 0 ]; then
   echo "everything derived is level with the engine"
 else
-  echo "$behind behind the engine. ./refresh-examples and ./build-web bring them up."
+  echo "$behind behind the engine. Each is named above with what makes it."
   # a bare `[ ... ] && exit 1` at the end of a script leaves its own false
   # status as the script's, which had this reporting failure every time it
   # reported anything at all

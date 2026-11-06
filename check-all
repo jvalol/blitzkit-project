@@ -137,7 +137,21 @@ echo "== how far behind the derived things are, here and on the site"
 # cancelled for five hours while everything here agreed with everything else.
 # That part costs three seconds and says nothing at all when the site cannot
 # be reached, so it is safe to run with no network.
-./check-fresh
+#
+# **And the local half of it is a gate.** This called it bare: no --strict
+# and no reading of the status, so it was the one check in here that could
+# say nothing had better be done and let the gate pass anyway. On
+# 2026-11-06 it printed "36 behind the engine" and this script printed
+# "all 16 crates pass" in the same run and exited 0. Jake had been
+# tripping over missed media updates and that was where they were getting
+# through.
+#
+# --strict fails on what is behind the engine here and never on what the
+# site is serving, which wants the network and is expected to differ in
+# the moment before a push.
+if ! ./check-fresh --strict; then
+  failed+=("derived things behind the engine")
+fi
 
 echo "== listings"
 if ! ./check-listings; then
