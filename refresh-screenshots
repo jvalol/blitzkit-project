@@ -219,11 +219,19 @@ elif ! ./contact-sheet blitzkit/media/games.png "${shots[@]}"; then
   say "   the grid could not be laid out"
 else
   # **The one thing in the engine's media made out of other repos**, so it is
-  # the one that needs `--bakes`: a sha of the thirteen screenshots it is
-  # built from. Without it a game could take a new shot and this grid would
-  # go on showing the old one with the gate calling it current, which is the
-  # fault ./stamp was written for.
-  ./stamp blitzkit/media/MADE --bakes 'games/*/media/screenshot.png' games.png
+  # the one that needs `--bakes`: a sha of the screenshots it is built from.
+  # Without it a game could take a new shot and this grid would go on showing
+  # the old one with the gate calling it current, which is the fault ./stamp
+  # was written for.
+  #
+  # **And it said fourteen while the lines above said thirteen.** This was the
+  # glob `games/*/media/screenshot.png`, which is what the comment above
+  # already explains is wrong for choosing the games: it matches aleph, which
+  # is parked and has no manifest. So the grid was laid out from thirteen and
+  # stamped with a hash of fourteen. ./list-repos, asked the same way
+  # check-fresh asks it, so the two cannot disagree about whether this is
+  # stale.
+  ./stamp blitzkit/media/MADE --bakes "$(./list-repos shots | tr '\n' ' ')" games.png
 fi
 
 say ""
