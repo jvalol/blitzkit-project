@@ -20,6 +20,13 @@
 # Both `klein::tests::x` and `blitzkit_shapes::klein::tests::x` are accepted.
 # --list never prints the crate, but a spec in a repo holding more than one has
 # to say which crate it means.
+#
+# **And the citation that points the other way.** A spec number written into a
+# comment is a thing somebody will go and look up, and nothing checked that
+# there was anything to find: the arcade cited a spec 0059 in twelve places
+# for days and the gate stayed green. What is checked is the gap in the
+# numbering rather than the comment, because a number read out of a comment
+# cannot say which repo it means and every game cites the engine bare.
 
 set -uo pipefail
 cd "$(dirname "$0")" || exit 1
@@ -118,6 +125,62 @@ for repo in "${repos[@]}"; do
     done < <(grep -ho '`[a-z_0-9:]*`' "$spec" | tr -d '`' | grep 'tests::' | sort -u)
   done
 
+  # **And the other direction, which nothing was looking in at all.** Every
+  # loop above reads a spec and asks whether the tests it names exist. Nothing
+  # read the code and asked anything about the spec it names, so a citation to
+  # a spec that was never written sits there reading like cover.
+  #
+  # Twelve places in the arcade cited a spec 0059 that did not exist: the
+  # typed field, the caret, the field's leaf litter and the landing's piers
+  # and balusters, three separate pieces of work that all took the next number
+  # and none of which wrote the file. Found 2026-11-06 by somebody picking the
+  # number for 0060 by hand.
+  #
+  # **What is checked is the hole, not the citation.** Reading a number out of
+  # a comment cannot say which repo is meant: the engine's numbers and a
+  # game's run over each other, every game cites the engine's bare as a matter
+  # of course, and blitzkit has a 0059 of its own, so a check that accepted
+  # either would have called the dead citation fine. The thing that is
+  # unambiguous is the gap. Three pieces of work took 0059 and wrote no file,
+  # and the arcade's specs ran 0058, then 0060.
+  #
+  # A skipped number is a real thing and has to be sayable, so it is said
+  # here. blitzkit has never had an 0040 and nothing of its own points at one.
+  skipped="blitzkit 0040"
+
+  numbers=$(basename -a "$repo"/specs/[0-9]*.md 2>/dev/null | cut -c1-4 | sort -u)
+
+  if [ -n "$numbers" ]; then
+    first=$(head -1 <<<"$numbers")
+    last=$(tail -1 <<<"$numbers")
+
+    for n in $(seq "$((10#$first))" "$((10#$last))"); do
+      printf -v want '%04d' "$n"
+      grep -qx "$want" <<<"$numbers" && continue
+      grep -qw "$repo $want" <<<"$skipped" && continue
+
+      echo "  $repo has no spec $want and has specs either side of it"
+      missing=$((missing + 1))
+    done
+  fi
+
+  # And a number written into the code is a number somebody has to be able to
+  # look up. Its own or the engine's, because that is what a game cites; a
+  # citation that names another repo outright says so and is left alone.
+  theirs=$(basename -a blitzkit/specs/[0-9]*.md 2>/dev/null | cut -c1-4 | sort -u)
+
+  while read -r said; do
+    [ -n "$said" ] || continue
+
+    number=${said##* }
+    case "$said" in *"'s spec"*) [ "${said%%\'*}" = "the engine" ] || continue ;; esac
+    grep -qx "$number" <<<"$numbers" && continue
+    grep -qx "$number" <<<"$theirs" && continue
+
+    echo "  $repo cites a spec $number that is nobody's"
+    missing=$((missing + 1))
+  done < <(grep -rhoE "([a-z]+'s )?[Ss]pec[a-z]* 0[0-9]{3}" "$repo/src" 2>/dev/null | sort -u)
+
   # And the other way about: a draft every one of whose tests exists is a spec
   # that got built and never had its one word changed.
   #
@@ -131,6 +194,17 @@ for repo in "${repos[@]}"; do
   # that do not exist yet and is a real draft, which is what blitzkit's 0024
   # is: it says in its own body that it waits for something to need it, and
   # eight of its ten names are things nobody has written.
+  #
+  # **And "in build" is a draft by another name.** This read the one word and
+  # nothing else, so the arcade's 0057 and 0058 sat outside every loop in this
+  # file for two days with the gate green: both built, and 0058 describing a
+  # riddle you answered by looking when the code had taken to asking you to
+  # type. Widening it catches 0057, whose six tests all existed. It does not
+  # catch 0058, which named one test nobody ever wrote, and a spec with an
+  # unwritten test in it is what a real draft looks like from here.
+  #
+  # Two words rather than a rule about anything that is not "implemented",
+  # because a Status is prose in several of these on purpose.
   # Every loop here decides whether to read a spec at all from its Status
   # line, so a spec without one is outside the whole check and nothing says
   # so. The arcade's 0012 was: a commit meant to read it against the code
@@ -154,7 +228,10 @@ for repo in "${repos[@]}"; do
   done
 
   for spec in "$repo"/specs/*.md; do
-    grep -qx '\*\*Status:\*\* draft' "$spec" || continue
+    case "$(sed -n 's/^\*\*Status:\*\* //p' "$spec" | head -1)" in
+    draft | "in build") ;;
+    *) continue ;;
+    esac
 
     cited=0
     answered=0
@@ -165,14 +242,15 @@ for repo in "${repos[@]}"; do
     done < <(grep -ho '`[a-z_0-9:]*`' "$spec" | tr -d '`' | grep 'tests::' | sort -u)
 
     if [ "$cited" -gt 0 ] && [ "$cited" -eq "$answered" ]; then
-      echo "  $spec is a draft and every one of its $cited tests exists, so it is implemented"
+      echo "  $spec is not marked implemented and every one of its $cited tests exists"
       missing=$((missing + 1))
     fi
   done
 done
 
 if [ "$missing" -eq 0 ]; then
-  echo "every implemented spec names tests that exist, and every spec is indexed"
+  echo "every implemented spec names tests that exist, every spec is indexed,"
+  echo "and no number is cited that nobody wrote"
 else
   echo "$missing spec problem(s)"
   exit 1
