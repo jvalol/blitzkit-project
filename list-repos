@@ -12,9 +12,18 @@
 # The engine stays beside games/ rather than in it, because the override in
 # .cargo/config.toml names that folder.
 #
-# Usage: ./list-repos [games]
+# Usage: ./list-repos [games|shots]
 #   (none)  every crate as a path from here, engine first
 #   games   the games' names, which is what the readmes and the site write about
+#   shots   each game's screenshot, which is what the arcade's build.rs bakes
+#
+# **shots is here because it was a glob in two other files.** The arcade bakes
+# every game's screenshot into its wasm, and `games/*/media/screenshot.png`
+# was written out in check-fresh and again in build-web to say which ones.
+# That glob matches a directory without a manifest, so it took in aleph, whose
+# manifest is Cargo.toml.not-yet: fourteen files hashed to decide whether a
+# build holding thirteen was stale. build.rs selects on the manifest being
+# there, which is the rule below, so this says it the one way.
 
 set -uo pipefail
 cd "$(dirname "$0")" || exit 1
@@ -33,6 +42,7 @@ games() {
 
 case "$want" in
   games) games ;;
+  shots) games | sed 's|^|games/|; s|$|/media/screenshot.png|' ;;
   all)
     # The engine first, because the games build against the checkout and a
     # failure in it explains theirs.
@@ -49,7 +59,7 @@ case "$want" in
     games | sed 's|^|games/|'
     ;;
   *)
-    echo "usage: $0 [games]" >&2
+    echo "usage: $0 [games|shots]" >&2
     exit 2
     ;;
 esac

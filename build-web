@@ -125,8 +125,12 @@ for name in "${wanted[@]}"; do
     # **Three things, not two.** Its build.rs bakes every game's screenshot
     # into the wasm, because a browser has no disk to read them off, so a
     # screenshot retaken anywhere makes this build stale and neither commit
-    # can see it. ./check-fresh names the same glob; see BAKED there.
-    ./stamp "$OUT/MADE" --from "$repo" --bakes 'games/*/media/screenshot.png' \
+    # can see it.
+    #
+    # Which ones comes from ./list-repos, not from a glob written out here and
+    # again in check-fresh. Those two matched each other and not build.rs,
+    # which selects on a game having a manifest.
+    ./stamp "$OUT/MADE" --from "$repo" --bakes "$(./list-repos shots | tr '\n' ' ')" \
       "$name.js" "${name}_bg.wasm"
   else
     ./stamp "$OUT/MADE" --from "$repo" "$name.js" "${name}_bg.wasm"

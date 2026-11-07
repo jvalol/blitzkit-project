@@ -62,12 +62,21 @@ behind_engine() {
 # the arcade's own repo. A freshness check that cannot see the thing that
 # changed is worse than none, because it is believed.
 # The hash of what the arcade's build.rs bakes in, as `./stamp --bakes`
-# writes it. One place, so the two cannot say it differently.
-BAKED=games/*/media/screenshot.png
-
+# writes it.
+#
+# **This said it differently from build.rs, while claiming it could not.** It
+# was `games/*/media/screenshot.png` here and the same glob again in
+# build-web, with a comment in each pointing at the other. A glob cannot ask
+# whether a directory holds a manifest, which is what build.rs selects on, so
+# it took in aleph: fourteen screenshots hashed to decide whether a build
+# holding thirteen had gone stale, and a retaken aleph shot would have called
+# the arcade behind over a picture that is not in it.
+#
+# ./list-repos is where that rule already lives, for the reason its own header
+# gives, so `shots` is asked for here rather than spelled out.
 baked_now() {
-  # shellcheck disable=SC2086
-  cat $BAKED 2>/dev/null | shasum -a 256 | cut -c1-8
+  # shellcheck disable=SC2046
+  cat $(./list-repos shots) 2>/dev/null | shasum -a 256 | cut -c1-8
 }
 
 behind_source() {
