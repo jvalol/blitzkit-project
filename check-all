@@ -53,6 +53,35 @@ for repo in "${repos[@]}"; do
   fi
 done
 
+# **And the one target none of that compiles for.** Every cargo line above
+# builds for the host. The engine also goes to wasm, which is what all
+# eighteen browser builds are, and the only thing that ever compiles it that
+# way is ./build-web, whose warnings go past in eighteen builds of output.
+# `without_a_comment` was dead there from the day it was written, 2026-11-06
+# in 36879d5: used on the host, unused on wasm because its one caller is
+# gated, and invisible to a clippy that only ever saw the host.
+#
+# The engine alone, because every browser build is this crate compiled that
+# way and a game's own source is the same either way. One crate and one
+# target rather than sixteen of each, which is what makes it cheap enough to
+# sit here.
+#
+# Not --all-targets, which the lines above do use. The tests call the
+# functions this target leaves out, so asking for them here is asking for a
+# failure that means nothing.
+#
+# Skipped rather than failed where the target is not installed. A machine
+# that cannot build for wasm cannot publish the site either, and ./build-web
+# is where that belongs as an error.
+echo "== the engine for wasm"
+if rustup target list --installed 2>/dev/null | grep -qx wasm32-unknown-unknown; then
+  if ! (cd blitzkit && cargo clippy --quiet --target wasm32-unknown-unknown -- -D warnings); then
+    failed+=("blitzkit for wasm")
+  fi
+else
+  echo "   wasm32-unknown-unknown is not installed, so nothing was checked."
+fi
+
 # Nothing in a cargo run reads prose, so a copy marker could sit in the readme
 # until `cargo publish` carried it to crates.io. It nearly did on 2026-09-26.
 echo "== copy markers"
