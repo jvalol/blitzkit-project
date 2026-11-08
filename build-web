@@ -27,21 +27,28 @@ export RUSTFLAGS="${RUSTFLAGS:-} --cfg getrandom_backend=\"wasm_js\""
 
 say() { printf '%s\n' "$*"; }
 
-# What each name is: which crate it lives in and what cargo calls it there.
+# What each name is: which crate it lives in, what cargo calls it there, and
+# what the built file is called.
 #
 # The arcade is not an example and not in this engine's repo, so it is named
 # here rather than found. Everything else is a file under blitzkit/examples.
+#
+# **Three fields and not two, since the building was renamed.** The crate is
+# labyrinth and what the site serves is arcade.js and arcade_bg.wasm, so the
+# name a page asks to play and the file cargo writes are no longer the same
+# word. Renaming the published pair would change URLs the site has been
+# serving, which is a separate decision from what the folder is called.
 where_is() {
   # A game is its own repo under games/, and is built the way the arcade is:
   # a bin rather than an example. Read off the disc rather than listed here,
   # for the reason ./list-repos exists. Spec 0055.
   case "$1" in
-    arcade) echo "arcade bin" ;;
+    arcade) echo "labyrinth bin labyrinth" ;;
     *)
       if [ -f "games/$1/Cargo.toml" ]; then
-        echo "games/$1 bin"
+        echo "games/$1 bin $1"
       else
-        echo "blitzkit example"
+        echo "blitzkit example $1"
       fi
       ;;
   esac
@@ -88,7 +95,7 @@ made=0
 total=0
 
 for name in "${wanted[@]}"; do
-  read -r repo kind <<< "$(where_is "$name")"
+  read -r repo kind built_as <<< "$(where_is "$name")"
 
   if [ "$kind" = example ] && [ ! -f "blitzkit/examples/$name.rs" ]; then
     say "== $name is not an example, skipped"
@@ -103,7 +110,7 @@ for name in "${wanted[@]}"; do
   rm -f "$OUT/$name.js" "$OUT/${name}_bg.wasm"
 
   if [ "$kind" = example ]; then
-    (cd "$repo" && cargo build --release --target wasm32-unknown-unknown --example "$name" --quiet)
+    (cd "$repo" && cargo build --release --target wasm32-unknown-unknown --example "$built_as" --quiet)
     from=examples
   else
     (cd "$repo" && cargo build --release --target wasm32-unknown-unknown --quiet)
@@ -112,8 +119,10 @@ for name in "${wanted[@]}"; do
 
   built=$(cd "$repo" && cargo metadata --format-version 1 --no-deps |
     python3 -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')
-  wasm-bindgen --target web --no-typescript --out-dir "$OUT" \
-    "$built/wasm32-unknown-unknown/release/$from/$name.wasm"
+  # --out-name, because wasm-bindgen names what it writes after the file it
+  # was handed and the crate is no longer called what the site asks to play.
+  wasm-bindgen --target web --no-typescript --out-dir "$OUT" --out-name "$name" \
+    "$built/wasm32-unknown-unknown/release/$from/$built_as.wasm"
 
   # written down as it is made, so ./check-fresh can say how far behind this
   # build is without anybody having to remember. Two commits: the engine, and

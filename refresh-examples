@@ -218,14 +218,15 @@ wanted=("$@")
 
 say "== building the examples"
 (cd blitzkit && cargo build --release --examples --quiet)
-(cd arcade && cargo build --release --quiet)
+(cd labyrinth && cargo build --release --quiet)
 
 # Where cargo put them, asked rather than assumed. The repos here share one
 # target directory at the project root, so blitzkit/target does not exist and
 # looking for the binaries there finds nothing.
 TARGET=$(cd blitzkit && cargo metadata --format-version 1 --no-deps |
   python3 -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')/release
-ARCADE=$TARGET/arcade
+# the building's crate is labyrinth; what the site plays is still arcade
+ARCADE=$TARGET/labyrinth
 
 # media/ at the engine's root and not site/static/media, which is a copy
 # site/scripts/build takes at build time and git ignores. Writing to the copy

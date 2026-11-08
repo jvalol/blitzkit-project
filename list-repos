@@ -52,10 +52,16 @@ case "$want" in
     # not engine code, but their tests have to keep running and a test under
     # examples/ never does. Named separately so its failures are named too.
     [ -f blitzkit/shapes/Cargo.toml ] && echo blitzkit/shapes
-    # the arcade is the room the games sit in rather than one of them, so it is
-    # beside games/ and not under it. It is a crate and wants testing; it is not
-    # a game and must not be asked for a bullet in the game lists.
-    [ -f arcade/Cargo.toml ] && echo arcade
+    # labyrinth is the building the games sit in rather than one of them, so it
+    # is beside games/ and not under it. It is a crate and wants testing; it is
+    # not a game and must not be asked for a bullet in the game lists.
+    #
+    # The folder and the binary are labyrinth and the room you land in is still
+    # an arcade, which is deliberate: the name is the building's and the hall
+    # keeps its own sign. What the site serves is still called arcade, so the
+    # published name and the crate are two different things and ./build-web is
+    # where that is written down.
+    [ -f labyrinth/Cargo.toml ] && echo labyrinth
     games | sed 's|^|games/|'
     ;;
   *)
