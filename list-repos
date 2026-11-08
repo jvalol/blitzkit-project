@@ -56,11 +56,9 @@ case "$want" in
     # it is beside games/ and not under it. It is a crate and wants testing; it
     # is not a game and must not be asked for a bullet in the game lists.
     #
-    # The folder and the binary are capriccio and the room you land in is still
-    # an arcade, which is deliberate: the name is the building's and the hall
-    # keeps its own sign. What the site serves is still called arcade, so the
-    # published name and the crate are two different things and ./build-web is
-    # where that is written down.
+    # The folder, the binary and what the site serves are all capriccio now.
+    # The room you land in is still an arcade, which is deliberate: the name
+    # is the building's and the hall keeps its own sign.
     [ -f capriccio/Cargo.toml ] && echo capriccio
     games | sed 's|^|games/|'
     ;;

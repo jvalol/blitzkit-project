@@ -38,7 +38,7 @@
 #
 # **Two runs give the same bytes for fourteen of the sixteen.** menger and
 # load do not, measured over two runs each of all of them on 2026-11-04;
-# everything else matches to the byte, the arcade's 46 seconds included, so
+# everything else matches to the byte, capriccio's 46 seconds included, so
 # it is not length and not scene size. See spec 0084.
 #
 # The keys are a file the engine plays rather than events posted at the
@@ -90,7 +90,7 @@ RATE=${RATE:-30}
 # press, which the table's numbers were written around. A key is an instant in
 # the log, so the gaps between them are the gaps written here.
 #
-# **The arcade's route is places rather than keys, per spec 0049.** The column
+# **capriccio's route is places rather than keys, per spec 0049.** The column
 # says `film:clip` and the route itself is `tour::clip`, which reads the
 # building's own accessors for every place it names: the pond, the planets,
 # the bookcase, the baths, the pool. Written out here it would be a second
@@ -140,7 +140,7 @@ ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
 chain	1.5	8	7.4	1 tap:right:20:0.035 3
 knot	1	8	4	hold:right:1.6 m 1.2 m 1.0 down 1.2 up
 load	3	15	12	1.5 m 1.5 up 1.5 up 1.5 up 2
-arcade	2.5	56	26	film:clip --done
+capriccio	2.5	56	26	film:clip --done
 LIST
 )
 
@@ -225,8 +225,8 @@ say "== building the examples"
 # looking for the binaries there finds nothing.
 TARGET=$(cd blitzkit && cargo metadata --format-version 1 --no-deps |
   python3 -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')/release
-# the building's crate is capriccio; what the site plays is still arcade
-ARCADE=$TARGET/capriccio
+# the building is a binary of its own, not an example, so it is named here
+CAPRICCIO=$TARGET/capriccio
 
 # media/ at the engine's root and not site/static/media, which is a copy
 # site/scripts/build takes at build time and git ignores. Writing to the copy
@@ -259,8 +259,8 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   tour=""
   case "${keys:-}" in
     film:*)
-      # the column is the route, and then any flags that run needs. The
-      # arcade's clip asks for --done, because spec 0054 puts Bifrost up
+      # the column is the route, and then any flags that run needs.
+      # capriccio's clip asks for --done, because spec 0054 puts Bifrost up
       # only for a building that has been finished and the clip ends by
       # looking at it.
       route=${keys#film:}
@@ -276,11 +276,11 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # stills.
   runs=${name%-glass}
 
-  # and where it lives. The arcade is a binary in its own repo rather than an
+  # and where it lives. capriccio is a binary in its own repo rather than an
   # example in the engine's, and it is on the site like the examples are, so
   # it is filmed like them.
-  if [ "$runs" = arcade ]; then
-    binary=$ARCADE
+  if [ "$runs" = capriccio ]; then
+    binary=$CAPRICCIO
   else
     binary="$TARGET/examples/$runs"
   fi
@@ -292,7 +292,7 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   fi
 
   # **Asked whether the route still works before anything is filmed.** Spec
-  # 0042. The arcade's panel takes all four arrows while the sight is on it,
+  # 0042. capriccio's panel takes all four arrows while the sight is on it,
   # so a route that walks past the panel stops turning and keeps holding keys
   # at a camera that is pointed at a wall. That is what the clip published on
   # the 26th of October was, and no frame of it looks wrong.
@@ -305,7 +305,7 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # goes where it says is `tour::tests::the_clip_s_tour_gets_all_the_way_round`,
   # which plans every leg of it in the gate, works the two doors on the way,
   # and names the legs that fail.
-  if [ "$runs" = arcade ] && [ -n "${keys:-}" ] && ! "$binary" "--walk=$keys"; then
+  if [ "$runs" = capriccio ] && [ -n "${keys:-}" ] && ! "$binary" "--walk=$keys"; then
     say "   the staged route does not go where it says, so nothing was filmed"
     missed=$((missed + 1))
     continue
@@ -369,7 +369,7 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # had a frame to cost: load's readout came out as nought draws and nought
   # triangles at every second tried. Spec 0085 made a picture draw every
   # frame like a film does, which costs almost nothing, because what a film
-  # pays for is reading each frame back rather than drawing it: the arcade's
+  # pays for is reading each frame back rather than drawing it: capriccio's
   # 46 seconds went from 11.37 to 11.61.
   #
   # Drawn is now the better of the two for a second reason. menger and load
@@ -389,9 +389,9 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # its arc and the wall is in pieces, which stays true however the swing
   # drifts.
   #
-  # The arcade's was 10, which on the route as it stands is the solarium: a
-  # black field with one word on it, as the still that stands for a game
-  # called arcade. It was 16, the walk down the hall; it is 26 now, which is
+  # capriccio's was 10, which on the route as it stands is the solarium: a
+  # black field with one word on it, as the still that stands for the whole
+  # building. It was 16, the walk down the hall; it is 26 now, which is
   # the same walk, because the route gained ten seconds in the garden ahead
   # of it on 2026-11-07 and 16 landed on a tree with a lantern behind it.
   #
@@ -405,14 +405,14 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
     --picture-for "${poster:-1}" >/dev/null 2>&1
 
   # written down as it is filmed, so ./check-fresh can say how far behind this
-  # clip is without anybody having to remember. The arcade has a repo of its
+  # clip is without anybody having to remember. capriccio has a repo of its
   # own on top of the engine and the rest do not, which is the whole of why
   # this takes two commits rather than one.
   #
-  # The clip is called arcade and the folder it comes out of is capriccio,
-  # and ./check-fresh resolves the second of those against the disc: stamped
-  # with the first it read arcade@unknown and called the clip unreadable.
-  if [ "$runs" = arcade ]; then
+  # --from names the folder, which ./check-fresh resolves against the disc.
+  # While the clip was called arcade and the folder capriccio, stamping it
+  # with the clip's name read arcade@unknown and called the clip unreadable.
+  if [ "$runs" = capriccio ]; then
     ./stamp "$OUT/MADE" --from capriccio "$name.mp4" "$name.png"
   else
     ./stamp "$OUT/MADE" "$name.mp4" "$name.png"

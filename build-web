@@ -30,20 +30,19 @@ say() { printf '%s\n' "$*"; }
 # What each name is: which crate it lives in, what cargo calls it there, and
 # what the built file is called.
 #
-# The arcade is not an example and not in this engine's repo, so it is named
+# capriccio is not an example and not in this engine's repo, so it is named
 # here rather than found. Everything else is a file under blitzkit/examples.
 #
-# **Three fields and not two, since the building was renamed.** The crate is
-# capriccio and what the site serves is arcade.js and arcade_bg.wasm, so the
-# name a page asks to play and the file cargo writes are no longer the same
-# word. Renaming the published pair would change URLs the site has been
-# serving, which is a separate decision from what the folder is called.
+# **Three fields and not two, because a game's repo is not its name.** A game
+# under games/ is built out of games/<name>, so the folder and the name differ
+# there even though capriccio's now agree. They disagreed for capriccio too
+# between the rename and 2026-11-08, when the site still served arcade.js.
 where_is() {
-  # A game is its own repo under games/, and is built the way the arcade is:
+  # A game is its own repo under games/, and is built the way capriccio is:
   # a bin rather than an example. Read off the disc rather than listed here,
   # for the reason ./list-repos exists. Spec 0055.
   case "$1" in
-    arcade) echo "capriccio bin capriccio" ;;
+    capriccio) echo "capriccio bin capriccio" ;;
     *)
       if [ -f "games/$1/Cargo.toml" ]; then
         echo "games/$1 bin $1"
@@ -130,7 +129,7 @@ for name in "${wanted[@]}"; do
   # the engine's own and names no second one.
   if [ "$kind" = example ]; then
     ./stamp "$OUT/MADE" "$name.js" "${name}_bg.wasm"
-  elif [ "$name" = arcade ]; then
+  elif [ "$name" = capriccio ]; then
     # **Three things, not two.** Its build.rs bakes every game's screenshot
     # into the wasm, because a browser has no disk to read them off, so a
     # screenshot retaken anywhere makes this build stale and neither commit
