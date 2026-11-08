@@ -218,15 +218,15 @@ wanted=("$@")
 
 say "== building the examples"
 (cd blitzkit && cargo build --release --examples --quiet)
-(cd labyrinth && cargo build --release --quiet)
+(cd capriccio && cargo build --release --quiet)
 
 # Where cargo put them, asked rather than assumed. The repos here share one
 # target directory at the project root, so blitzkit/target does not exist and
 # looking for the binaries there finds nothing.
 TARGET=$(cd blitzkit && cargo metadata --format-version 1 --no-deps |
   python3 -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')/release
-# the building's crate is labyrinth; what the site plays is still arcade
-ARCADE=$TARGET/labyrinth
+# the building's crate is capriccio; what the site plays is still arcade
+ARCADE=$TARGET/capriccio
 
 # media/ at the engine's root and not site/static/media, which is a copy
 # site/scripts/build takes at build time and git ignores. Writing to the copy
@@ -409,11 +409,11 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # own on top of the engine and the rest do not, which is the whole of why
   # this takes two commits rather than one.
   #
-  # The clip is called arcade and the folder it comes out of is labyrinth,
+  # The clip is called arcade and the folder it comes out of is capriccio,
   # and ./check-fresh resolves the second of those against the disc: stamped
   # with the first it read arcade@unknown and called the clip unreadable.
   if [ "$runs" = arcade ]; then
-    ./stamp "$OUT/MADE" --from labyrinth "$name.mp4" "$name.png"
+    ./stamp "$OUT/MADE" --from capriccio "$name.mp4" "$name.png"
   else
     ./stamp "$OUT/MADE" "$name.mp4" "$name.png"
   fi

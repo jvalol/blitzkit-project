@@ -34,7 +34,7 @@ say() { printf '%s\n' "$*"; }
 # here rather than found. Everything else is a file under blitzkit/examples.
 #
 # **Three fields and not two, since the building was renamed.** The crate is
-# labyrinth and what the site serves is arcade.js and arcade_bg.wasm, so the
+# capriccio and what the site serves is arcade.js and arcade_bg.wasm, so the
 # name a page asks to play and the file cargo writes are no longer the same
 # word. Renaming the published pair would change URLs the site has been
 # serving, which is a separate decision from what the folder is called.
@@ -43,7 +43,7 @@ where_is() {
   # a bin rather than an example. Read off the disc rather than listed here,
   # for the reason ./list-repos exists. Spec 0055.
   case "$1" in
-    arcade) echo "labyrinth bin labyrinth" ;;
+    arcade) echo "capriccio bin capriccio" ;;
     *)
       if [ -f "games/$1/Cargo.toml" ]; then
         echo "games/$1 bin $1"

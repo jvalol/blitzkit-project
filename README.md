@@ -33,7 +33,7 @@ These are a few games demonstrating it.
 - [cascada](https://github.com/jvalol/cascada) dominoes to stand up and push over. It starts with a yin yang pattern, but you can stand up any other dominoes.
 - [monty](https://github.com/jvalol/monty) classic monty hall demonstration.
 
-Enjoy the arcade with `cd labyrinth && cargo run --release`, or go
+Enjoy the arcade with `cd capriccio && cargo run --release`, or go
 straight to one of the games.
 
 You can run examples with e.g. `cd blitzkit && cargo run --release --example tunnel`

@@ -127,8 +127,8 @@ for name in $(grep -oE 'https://github\.com/jvalol/[a-z0-9-]+' README.md |
     blitzkit-project) continue ;;
     blitzkit) at=$name ;;
     # the repo is still called arcade on GitHub and the folder it lands in is
-    # labyrinth, which is the building. Everything else here reads the folder.
-    arcade) at=labyrinth ;;
+    # capriccio, which is the building. Everything else here reads the folder.
+    arcade) at=capriccio ;;
     *) at=games/$name ;;
   esac
 
@@ -162,5 +162,5 @@ while read -r at; do
 done < <(./list-repos)
 
 echo "== the arcade"
-cd labyrinth || exit 1
+cd capriccio || exit 1
 exec cargo run --release --quiet
