@@ -408,8 +408,12 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # clip is without anybody having to remember. The arcade has a repo of its
   # own on top of the engine and the rest do not, which is the whole of why
   # this takes two commits rather than one.
+  #
+  # The clip is called arcade and the folder it comes out of is labyrinth,
+  # and ./check-fresh resolves the second of those against the disc: stamped
+  # with the first it read arcade@unknown and called the clip unreadable.
   if [ "$runs" = arcade ]; then
-    ./stamp "$OUT/MADE" --from arcade "$name.mp4" "$name.png"
+    ./stamp "$OUT/MADE" --from labyrinth "$name.mp4" "$name.png"
   else
     ./stamp "$OUT/MADE" "$name.mp4" "$name.png"
   fi
