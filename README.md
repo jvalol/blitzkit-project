@@ -18,7 +18,7 @@ These are a few games demonstrating it.
 ![Thirteen frames in a grid: a tower of wooden blocks, balls on green cloth, dominoes in a spiral, one candle in a dim room, a marble on a tilted slab, three doors with a lit prize, pong, pool table and cue, lit panels down a dark hall, the checked tunnel, snake, a Van Gogh cut into sliding tiles, and a tetromino well](https://raw.githubusercontent.com/jvalol/blitzkit/main/media/games.png)
 
 - [blitzkit](https://github.com/jvalol/blitzkit) the engine, a wrapper around wgpu.
-- [arcade](https://github.com/jvalol/arcade) the arcade. All games inside were built using this engine.
+- [capriccio](https://github.com/jvalol/capriccio) the building the games stand in.
 - [pong](https://github.com/jvalol/pong) the first game on it.
 - [snake](https://github.com/jvalol/snake) the second.
 - [tessera](https://github.com/jvalol/tessera) the third.
@@ -33,7 +33,7 @@ These are a few games demonstrating it.
 - [cascada](https://github.com/jvalol/cascada) dominoes to stand up and push over. It starts with a yin yang pattern, but you can stand up any other dominoes.
 - [monty](https://github.com/jvalol/monty) classic monty hall demonstration.
 
-Enjoy the arcade with `cd capriccio && cargo run --release`, or go
+Enjoy capriccio with `cd capriccio && cargo run --release`, or go
 straight to one of the games.
 
 You can run examples with e.g. `cd blitzkit && cargo run --release --example tunnel`
@@ -51,7 +51,7 @@ cd blitzkit-project && ./play
 ```
 
 `./play` installs Rust if it is not there, after asking first, clones the
-engine and every game, builds them, and walks you into the arcade. The clones
+engine and every game, builds them, and walks you in. The clones
 are shallow, so it is about a hundred megabytes rather than seven hundred, and
 `git fetch --unshallow` in any of them gets the history back. On Linux it
 names the packages the machine needs and leaves those to you, since they want
