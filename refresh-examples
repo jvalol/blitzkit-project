@@ -97,11 +97,16 @@ RATE=${RATE:-30}
 # account of where all of those are, and this file is the last place that
 # should hold one.
 #
-# 46 seconds for a route that is 90 metres of walking and 14 of standing.
+# 56 seconds for a route that is 113 metres of walking and 17 of standing.
 # Run in a test rather than measured off a take, by
 # `the_clip_walks_the_whole_route`, which drives the game's own frame loop and
-# prints what the route costs: 42.1 seconds. The rest is a few seconds of the
+# prints what the route costs: 52.5 seconds. The rest is a few seconds of the
 # pool to end on.
+#
+# It was 46 until 2026-11-07, when the route gained the one shot of what the
+# building is for: Bifrost, through the garden's way out, which is the end of
+# the trail and was on nothing published. Ten seconds, three of them standing
+# and the rest the walk to the opening and back.
 #
 # It was 66 with the imaginarium in it. That room and the dog-leg up to it
 # were twenty-two of those sixty-six and held nearly every blank frame in the
@@ -135,7 +140,7 @@ ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
 chain	1.5	8	7.4	1 tap:right:20:0.035 3
 knot	1	8	4	hold:right:1.6 m 1.2 m 1.0 down 1.2 up
 load	3	15	12	1.5 m 1.5 up 1.5 up 1.5 up 2
-arcade	2.5	46	16	film:clip
+arcade	2.5	56	26	film:clip --done
 LIST
 )
 
@@ -253,7 +258,13 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   tour=""
   case "${keys:-}" in
     film:*)
-      tour="--film=${keys#film:}"
+      # the column is the route, and then any flags that run needs. The
+      # arcade's clip asks for --done, because spec 0054 puts Bifrost up
+      # only for a building that has been finished and the clip ends by
+      # looking at it.
+      route=${keys#film:}
+      tour="--film=${route%% *}"
+      case "$route" in *" "*) tour="$tour ${route#* }" ;; esac
       keys=""
       ;;
   esac
@@ -379,8 +390,14 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   #
   # The arcade's was 10, which on the route as it stands is the solarium: a
   # black field with one word on it, as the still that stands for a game
-  # called arcade. It is 16 now, the walk down the hall, with cabinets either
-  # side and three of the games named on them.
+  # called arcade. It was 16, the walk down the hall; it is 26 now, which is
+  # the same walk, because the route gained ten seconds in the garden ahead
+  # of it on 2026-11-07 and 16 landed on a tree with a lantern behind it.
+  #
+  # Worth knowing before the next change to the route: a second written down
+  # here is a second into one particular route, so any leg added before a
+  # still moves that still. Nothing checks it. What caught this one was
+  # looking at the file the run wrote.
   # shellcheck disable=SC2086
   # shellcheck disable=SC2086
   "$binary" $tour --play "$log" --picture-to "$OUT/$name.png" \
