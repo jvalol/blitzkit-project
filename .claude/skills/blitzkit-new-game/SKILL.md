@@ -54,8 +54,29 @@ most recent.
   at it.
 
 First commit subject: `Schöpfung aus dem Nichts`. Always, in any new repo.
+
+Install the push gate before the first push. The repo is public, so a push
+publishes the README, and `.git/hooks` isn't tracked, so a new repo has no
+hook until one is written. Every sibling has this one (added 2026-11-10):
+
+```sh
+cat > .git/hooks/pre-push <<'EOF'
+#!/bin/sh
+#
+# pre-push: this repo is public, so a push publishes its README. Refuse copy
+# whose bytes Jake has not signed off (~/.claude/voice/check-voice, tells from
+# ai_filter). Skipped on a machine without it. Bypass: git push --no-verify.
+[ -x "$HOME/.claude/voice/check-voice" ] || exit 0
+exec "$HOME/.claude/voice/check-voice"
+EOF
+chmod +x .git/hooks/pre-push
+```
+
 Then `gh repo create jvalol/<name> --public --source=. --push`, from inside
-`games/<name>`.
+`games/<name>`. It refuses until Jake has signed the README with
+`~/.claude/voice/sign-copy README.md`. Commit the `.copy-signed` that writes,
+so the signature travels with the repo. That stop is the gate working: hand
+him the README to read, don't route around it with `--no-verify`.
 
 ## Registering it
 
@@ -85,5 +106,6 @@ Run `./check-all` from the project root. It runs tests, clippy and fmt for every
 crate, then copy markers, spec citations, listings, and the tunnel/slider pair.
 
 Every user-facing string drafted here carries `[COPY - Jake]` until Jake rewrites
-it and strikes the marker himself. check-all reads `$repo/src` as well as the
-readmes, so a marker in a string the game draws will hold the gate.
+it or signs the file with `sign-copy`, which takes the marker out. check-all
+reads `$repo/src` as well as the readmes, so a marker in a string the game draws
+will hold the gate.
