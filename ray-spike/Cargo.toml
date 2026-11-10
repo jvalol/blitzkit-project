@@ -1,0 +1,12 @@
+[package]
+name = "ray-spike"
+version = "0.0.0"
+edition = "2018"
+rust-version = "1.87"
+
+[dependencies]
+wgpu = "30"
+pollster = "0.4"
+bytemuck = { version = "1", features = ["derive"] }
+
+[workspace]

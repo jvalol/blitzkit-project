@@ -21,6 +21,13 @@
 !/check-tunnel
 !/check-film
 !/same-picture
+
+# Spec 0096's spike: does a ray query work at all on this stack. Its own
+# crate rather than a script, so its build output is denied again below.
+# ./list-repos does not find it, which means ./check-all never builds it and
+# it will rot unless somebody runs it.
+!/ray-spike
+/ray-spike/target
 !/contact-sheet
 !/refresh-screenshots
 !/refresh-examples
