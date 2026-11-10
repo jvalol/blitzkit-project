@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+# Are these two films, or these two stills, the same picture?
+#
+# Written on 2026-11-09 to ask whether media/ could be checked by the picture
+# instead of by the bytes, so that a diff there meant the picture had changed
+# rather than that somebody had refilmed it. The answer was no. A fresh menger
+# differs from the committed clip in 46 of its 212 frames by more than the
+# share below, and a fresh load in all 452, worst 5.31% of a frame. Those are
+# different pictures and not encoder noise, so there is nothing here to lean
+# on. blitzkit/specs/0084 carries what that ruled in and out.
+#
+# It is kept because the question keeps coming back and a number you can see
+# is what makes a threshold arguable. Measure the whole clip when you use it:
+# two seconds of menger showed one pixel in one frame, which said nothing
+# about the seven seconds and got written down as though it had.
+#
+# The question it asks is the one the engine's own picture tests ask, with their
+# two numbers: a pixel differs when a channel moves by more than CHANNEL, and a
+# picture differs when more than SHARE of the pixels do. blitzkit/src/picture.rs
+# holds both, and they are read out of it here rather than written down again.
+#
+# Exit 0 for the same picture, 1 for a different one, 2 for not being able to
+# tell. Says the worst frame either way.
+#
+# Usage: ./same-picture <one> <other>
+set -euo pipefail
+cd "$(dirname "$0")"
+
+one=${1:?usage: ./same-picture <one> <other>}
+other=${2:?usage: ./same-picture <one> <other>}
+
+for file in "$one" "$other"; do
+  if [ ! -f "$file" ]; then
+    echo "same-picture: there is no $file"
+    exit 2
+  fi
+done
+
+# the two numbers, asked of the engine rather than copied. A second copy of
+# either is a second account of what counts as a difference, which is the
+# fault this project has written down under half a dozen other names.
+rule=blitzkit/src/picture.rs
+channel=$(sed -n 's/^pub const CHANNEL: i32 = \([0-9]*\);/\1/p' "$rule")
+share=$(sed -n 's/^pub const SHARE: f32 = \([0-9.]*\);/\1/p' "$rule")
+if [ -z "${channel:-}" ] || [ -z "${share:-}" ]; then
+  echo "same-picture: $rule no longer says what a difference is"
+  exit 2
+fi
+
+# decoded rather than compared as files, because a clip is encoded and two
+# encodes of the same frames are not the same bytes either. Both sides go
+# through the same decoder, so what is compared is what a viewer sees.
+raw() {
+  ffmpeg -nostdin -hide_banner -loglevel error \
+    -i "$1" -f rawvideo -pix_fmt rgba - </dev/null
+}
+
+size=$(ffprobe -v error -select_streams v:0 \
+  -show_entries stream=width,height -of csv=p=0:s=x "$one" 2>/dev/null || true)
+other_size=$(ffprobe -v error -select_streams v:0 \
+  -show_entries stream=width,height -of csv=p=0:s=x "$other" 2>/dev/null || true)
+
+if [ -z "$size" ] || [ "$size" != "$other_size" ]; then
+  echo "different picture: $one is ${size:-unreadable} and $other is ${other_size:-unreadable}"
+  exit 1
+fi
+
+wide=${size%x*}
+tall=${size#*x}
+
+raw "$one" > /tmp/same-picture-one.raw
+raw "$other" > /tmp/same-picture-other.raw
+
+python3 - "$wide" "$tall" "$channel" "$share" <<'PY'
+import sys
+
+wide, tall, channel, share = int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), float(sys.argv[4])
+frame = wide * tall * 4
+pixels = wide * tall
+one = open('/tmp/same-picture-one.raw', 'rb')
+other = open('/tmp/same-picture-other.raw', 'rb')
+
+frames = worst = 0
+worst_at = -1
+over = 0
+
+while True:
+    a, b = one.read(frame), other.read(frame)
+    if len(a) < frame or len(b) < frame:
+        break
+    if a != b:
+        off = sum(
+            1
+            for n in range(0, frame, 4)
+            if max(abs(a[n] - b[n]), abs(a[n + 1] - b[n + 1]), abs(a[n + 2] - b[n + 2])) > channel
+        )
+        if off / pixels > worst:
+            worst, worst_at = off / pixels, frames
+        if off / pixels > share:
+            over += 1
+    frames += 1
+
+if frames == 0:
+    print('same-picture: nothing decoded')
+    raise SystemExit(2)
+
+length = 'frame' if frames == 1 else f'{frames} frames'
+said = f'worst is {worst * 100:.4f}% of frame {worst_at}' if worst_at >= 0 else 'not a pixel moved'
+
+if over:
+    print(f'different picture: {over} of {length} past {share * 100}%, {said}')
+    raise SystemExit(1)
+
+print(f'same picture: {length}, none past {share * 100}%, {said}')
+PY
+held=$?
+
+rm -f /tmp/same-picture-one.raw /tmp/same-picture-other.raw
+exit $held
