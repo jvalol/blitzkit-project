@@ -19,10 +19,27 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     rayQueryProceed(&q);
     let hit = rayQueryGetCommittedIntersection(&q);
 
-    out[n] = vec4<f32>(
+    // Everything a reflection would need to shade the surface it hit,
+    // without EXPERIMENTAL_RAY_HIT_VERTEX_RETURN: which triangle, where on
+    // it, and how to get that into the world.
+    out[n * 3u] = vec4<f32>(
         select(0.0, 1.0, hit.kind != RAY_QUERY_INTERSECTION_NONE),
         hit.t,
-        f32(hit.kind),
+        f32(hit.primitive_index),
         f32(hit.instance_custom_data),
     );
+    out[n * 3u + 1u] = vec4<f32>(
+        hit.barycentrics.x,
+        hit.barycentrics.y,
+        select(0.0, 1.0, hit.front_face),
+        f32(hit.geometry_index),
+    );
+    // the hit put back together from the barycentrics alone, in object
+    // space, which is the whole question: 1 - u - v weights the first vertex
+    let where_on_it = vec3<f32>(
+        1.0 - hit.barycentrics.x - hit.barycentrics.y,
+        hit.barycentrics.x,
+        hit.barycentrics.y,
+    );
+    out[n * 3u + 2u] = vec4<f32>(where_on_it, f32(hit.instance_index));
 }

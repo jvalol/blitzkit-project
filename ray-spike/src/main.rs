@@ -137,13 +137,13 @@ fn main() {
     });
     let answers = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("answers"),
-        size: 4 * 4 * 4,
+        size: 4 * 4 * 4 * 3,
         usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
         mapped_at_creation: false,
     });
     let read_back = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("read back"),
-        size: 4 * 4 * 4,
+        size: 4 * 4 * 4 * 3,
         usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
         mapped_at_creation: false,
     });
@@ -188,7 +188,7 @@ fn main() {
         pass.set_bind_group(0, &bound, &[]);
         pass.dispatch_workgroups(4, 1, 1);
     }
-    encoder.copy_buffer_to_buffer(&answers, 0, &read_back, 0, 4 * 4 * 4);
+    encoder.copy_buffer_to_buffer(&answers, 0, &read_back, 0, 4 * 4 * 4 * 3);
     queue.submit(std::iter::once(encoder.finish()));
 
     read_back.slice(..).map_async(wgpu::MapMode::Read, |_| ());
@@ -205,22 +205,46 @@ fn main() {
         .expect("the answers map");
     let got: &[f32] = bytemuck::cast_slice(&held);
 
-    println!("\n ray  hit     t       kind  custom_data   expected");
+    println!("\n ray  hit     t       triangle  barycentrics        where it landed");
     let expected = [true, true, false, false];
     let mut right = 0;
 
+    // the triangle again, to put the hit back together on the CPU
+    let v = TRIANGLE;
+
     for n in 0..4 {
-        let hit = got[n * 4] > 0.5;
+        let a = &got[n * 12..n * 12 + 12];
+        let hit = a[0] > 0.5;
+        let (u, w) = (a[4], a[5]);
+        let weights = [a[8], a[9], a[10]];
+
+        let put_back = [0, 1, 2].map(|k| {
+            weights[0] * v[0][k] + weights[1] * v[1][k] + weights[2] * v[2][k]
+        });
+
         println!(
-            "  {n}   {:<6}  {:<6.3}  {:<4}  {:<12}  {}",
-            hit,
-            got[n * 4 + 1],
-            got[n * 4 + 2],
-            got[n * 4 + 3],
-            expected[n]
+            "  {n}   {:<6}  {:<6.3}  {:<8}  {:<6.3} {:<6.3}      {:>6.3} {:>6.3} {:>6.3}",
+            hit, a[1], a[2] as i32, u, w, put_back[0], put_back[1], put_back[2]
         );
+
         if hit == expected[n] {
             right += 1;
+        }
+
+        // the ray is RAYS[n*2] going along RAYS[n*2+1], so where it struck is
+        // arithmetic the GPU never saw
+        if hit {
+            let from = RAYS[n * 2];
+            let along = RAYS[n * 2 + 1];
+            let should = [0, 1, 2].map(|k| from[k] + along[k] * a[1]);
+            let off = (0..3)
+                .map(|k| (put_back[k] - should[k]).abs())
+                .fold(0.0f32, f32::max);
+
+            println!(
+                "        ray says {:>6.3} {:>6.3} {:>6.3}, apart by {:.5}",
+                should[0], should[1], should[2], off
+            );
         }
     }
 

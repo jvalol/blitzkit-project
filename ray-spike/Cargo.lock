@@ -1231,3 +1231,7 @@ dependencies = [
  "quote",
  "syn 2.0.119",
 ]
+
+[[patch.unused]]
+name = "blitzkit"
+version = "0.16.0"
