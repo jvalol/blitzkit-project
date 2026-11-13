@@ -97,11 +97,26 @@ RATE=${RATE:-30}
 # account of where all of those are, and this file is the last place that
 # should hold one.
 #
-# 56 seconds for a route that is 113 metres of walking and 17 of standing.
+# 58 seconds for a route that is 113 metres of walking and 19 of standing.
 # Run in a test rather than measured off a take, by
 # `the_clip_walks_the_whole_route`, which drives the game's own frame loop and
-# prints what the route costs: 52.5 seconds. The rest is a few seconds of the
+# prints what the route costs: 54.2 seconds. The rest is a few seconds of the
 # pool to end on.
+#
+# It was 56 until 2026-11-12, when the route gained a second look from the
+# same place it looks at Bifrost from: up at the moon, which spec 0065 gave a
+# face and which nothing published had ever shown. Two seconds of standing
+# and the turn to get there.
+#
+# **The film sets its own clock and this file does not.** A day is twenty
+# seconds while the sky is being worked on, per `garden::DAY`, and a
+# fifty-eight second clip at that length crosses nearly three of them: the
+# garden would be a different hour each time the route passes it and the one
+# outdoor shot would get whichever sky its second fell on. So a run with
+# `--film=` takes `tour::FILM_DAY` and `tour::FILM_AT` instead, which puts
+# the whole film in one night at the hour the moon is low in the west. Both
+# live beside the route, because the hour is chosen by what the route looks
+# at.
 #
 # It was 46 until 2026-11-07, when the route gained the one shot of what the
 # building is for: Bifrost, through the garden's way out, which is the end of
@@ -140,7 +155,7 @@ ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
 chain	1.5	8	7.4	1 tap:right:20:0.035 3
 knot	1	8	4	hold:right:1.6 m 1.2 m 1.0 down 1.2 up
 load	3	15	12	1.5 m 1.5 up 1.5 up 1.5 up 2
-capriccio	2.5	56	25.5	film:clip --done
+capriccio	2.5	58	25.5	film:clip --done
 LIST
 )
 
