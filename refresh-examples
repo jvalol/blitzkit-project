@@ -98,6 +98,13 @@ RATE=${RATE:-30}
 # should hold one.
 #
 # 58 seconds for a route that is 113 metres of walking and 19 of standing.
+#
+# **And the still comes from 28 seconds in, which is the hall.** It was 25.5,
+# which lands in the dark room behind the wall: the picture on the examples
+# page was a near-black corridor with the help text as the brightest thing in
+# it, and had been for as long as the clip has existed. Nothing is wrong with
+# that frame except that it is the one frame of the tour that shows nothing.
+# Jake picked 28 off a contact sheet of the clip on 2026-11-14.
 # Run in a test rather than measured off a take, by
 # `the_clip_walks_the_whole_route`, which drives the game's own frame loop and
 # prints what the route costs: 54.2 seconds. The rest is a few seconds of the
@@ -155,7 +162,7 @@ ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
 chain	1.5	8	7.4	1 tap:right:20:0.035 3
 knot	1	8	4	hold:right:1.6 m 1.2 m 1.0 down 1.2 up
 load	3	15	12	1.5 m 1.5 up 1.5 up 1.5 up 2
-capriccio	2.5	58	25.5	film:clip --done
+capriccio	2.5	58	28	film:clip --done
 LIST
 )
 
