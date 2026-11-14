@@ -411,26 +411,16 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # its arc and the wall is in pieces, which stays true however the swing
   # drifts.
   #
-  # capriccio's was 10, which on the route as it stands is the solarium: a
-  # black field with one word on it, as the still that stands for the whole
-  # building. It was 16, the walk down the hall; it became 26, which is
-  # the same walk, because the route gained ten seconds in the garden ahead
-  # of it on 2026-11-07 and 16 landed on a tree with a lantern behind it.
-  #
-  # It is 25.5 since 2026-11-10. Jake, on the frame 26 gave: a cabinet
-  # across a third of it, and the still's job is the room rather than a
-  # cabinet. The hall runs from the cut at about 24.62 to past 28, and the
-  # frames with the ARCADE sign whole in them are all inside a second of
-  # that cut: 24.7 is the best picture in the leg and sits 0.08 after it,
-  # which is the same bet that put a tree in this still once already. 25.5
-  # is the room with the sign gone, 0.9 clear of the cut and 0.5 before the
-  # first marquee crowds the frame. A quarter of the margin buys a better
-  # composition and this takes the margin.
+  # capriccio's second is written beside its row in the table above, with
+  # what it shows and why. It was written out here as well, with the whole
+  # history of the number behind it, until 2026-11-14, when the two came
+  # apart: the table said 28 and this said 25.5, and this is not the column
+  # the code reads.
   #
   # Worth knowing before the next change to the route: a second written down
   # here is a second into one particular route, so any leg added before a
-  # still moves that still. Nothing checks it. What caught this one was
-  # looking at the file the run wrote.
+  # still moves that still. Nothing checks it. What has caught it each time
+  # is looking at the file the run wrote.
   # shellcheck disable=SC2086
   # shellcheck disable=SC2086
   "$binary" $tour --play "$log" --picture-to "$OUT/$name.png" \
