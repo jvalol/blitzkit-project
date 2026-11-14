@@ -1,32 +1,101 @@
-//! Does a ray query work at all on this stack?
+//! Can a shader read the surface it hit, out of the buffers the acceleration
+//! structure was built from?
 //!
-//! Spec 0096 is a draft because wgpu documents EXPERIMENTAL_RAY_QUERY as
-//! having major bugs and expecting breaking changes. This asks the cheapest
-//! question there is, outside the engine: build an acceleration structure
-//! over one triangle, trace four rays at it, and see whether the answers are
-//! the ones arithmetic already knows.
+//! Spec 0096's first spike asked whether a ray query works at all on wgpu 30
+//! and Metal. It does, and the answer it left behind was that
+//! `EXPERIMENTAL_RAY_HIT_VERTEX_RETURN` is false here, so a hit says which
+//! triangle and where on it and nothing about the surface. The spec then said
+//! the tables are the work and that binding them beside the structure was
+//! untried.
 //!
-//! Two should hit and two should miss. Anything else is the answer.
+//! This is that. A quad of two triangles with a different normal at every
+//! corner and a uv at every corner, two instances of it, one of them scaled
+//! unevenly, and a per instance table of what the renderer calls a material.
+//! Five rays. The shader reads the vertex and index buffers at the hit and
+//! builds the surface; this file does the same arithmetic on the CPU, from
+//! the same numbers, and prints how far apart they are.
+//!
+//! **Three questions, and the third was not in the spec.** Whether a buffer
+//! can feed a BLAS and be read as storage at the same time. Whether the
+//! lookup at the hit comes out right. And whether `object_to_world` carries
+//! a normal, which the spec says in passing and which is false the moment
+//! anything is scaled unevenly: a normal wants the inverse transpose, and a
+//! hit hands over `world_to_object`, which is the inverse already.
 
 use wgpu::util::DeviceExt;
 
-/// One triangle in the z = 0 plane, a unit across, sitting at the origin.
-const TRIANGLE: [[f32; 3]; 3] = [[-1.0, -1.0, 0.0], [1.0, -1.0, 0.0], [0.0, 1.0, 0.0]];
-
-/// Four rays, as (from, along) pairs, aimed along -z at z = 0.
+/// A quad in the z = 0 plane, interleaved the way a renderer keeps a vertex
+/// buffer: position, normal, uv, eight floats and 32 bytes to a vertex.
 ///
-/// The first two cross the triangle: its centroid is (0, -1/3) and (0, 0) is
-/// inside it. The second two are outside its edges by a wide margin.
-const RAYS: [[f32; 4]; 8] = [
-    [0.0, 0.0, 5.0, 0.0],
-    [0.0, 0.0, -1.0, 0.0],
+/// **The normals lean outward rather than all facing +z.** Four copies of
+/// one normal interpolates to itself whatever the weights are, which is a
+/// check that passes without reading the buffer at all.
+const VERTICES: [[f32; 8]; 4] = [
+    [-1.0, -1.0, 0.0, -0.4, -0.4, 1.0, 0.0, 0.0],
+    [1.0, -1.0, 0.0, 0.4, -0.4, 1.0, 1.0, 0.0],
+    [1.0, 1.0, 0.0, 0.4, 0.4, 1.0, 1.0, 1.0],
+    [-1.0, 1.0, 0.0, -0.4, 0.4, 1.0, 0.0, 1.0],
+];
+
+/// Wound counter-clockwise seen from +z, so a ray from behind reports
+/// `front_face` false. The second triangle is there to make
+/// `primitive_index` mean something.
+const INDICES: [u32; 6] = [0, 1, 2, 0, 2, 3];
+
+/// Row major 3x4, the layout `TlasInstance` takes.
+///
+/// The second is scaled three times in y, which is what makes the normal
+/// question measurable: a uniform scale leaves a normal's direction alone.
+const TRANSFORMS: [[f32; 12]; 2] = [
+    [
+        1.0, 0.0, 0.0, 0.0, //
+        0.0, 1.0, 0.0, 0.0, //
+        0.0, 0.0, 1.0, 0.0,
+    ],
+    [
+        1.0, 0.0, 0.0, 4.0, //
+        0.0, 3.0, 0.0, 0.0, //
+        0.0, 0.0, 1.0, 0.0,
+    ],
+];
+
+/// Whatever the builder wants to find its instance by. Not a subscript: the
+/// shader keys the material table by `instance_index` and reports these so
+/// that both can be seen to arrive.
+const CUSTOM_DATA: [u32; 2] = [11, 22];
+
+/// A row per instance: colour, then shininess, specular, texture, spare.
+/// This is spec 0012's `Instance` with the transform taken out, because the
+/// transform is the one thing a hit already hands over.
+const MATERIALS: [[f32; 8]; 2] = [
+    [0.80, 0.20, 0.15, 1.0, 900.0, 0.35, 3.0, 0.0],
+    [0.10, 0.45, 0.85, 1.0, 64.0, 0.90, 7.0, 0.0],
+];
+
+/// (from, along) pairs. Four hits and a miss.
+///
+/// Two at the unscaled instance, one in each triangle. Two at the scaled
+/// one, the second of them from behind. The last goes past everything.
+const RAYS: [[f32; 4]; 10] = [
     [0.0, -0.5, 5.0, 0.0],
     [0.0, 0.0, -1.0, 0.0],
-    [5.0, 5.0, 5.0, 0.0],
+    [-0.5, 0.0, 5.0, 0.0],
     [0.0, 0.0, -1.0, 0.0],
-    [0.0, 3.0, 5.0, 0.0],
+    [4.0, 1.5, 5.0, 0.0],
+    [0.0, 0.0, -1.0, 0.0],
+    [4.0, -1.5, -5.0, 0.0],
+    [0.0, 0.0, 1.0, 0.0],
+    [10.0, 10.0, 5.0, 0.0],
     [0.0, 0.0, -1.0, 0.0],
 ];
+
+const RAY_COUNT: usize = RAYS.len() / 2;
+
+/// Eight `vec4`s of answer per ray, which the shader writes and the printing
+/// below reads back by the same names.
+const SLOTS: usize = 8;
+
+const ANSWER_BYTES: u64 = (RAY_COUNT * SLOTS * 4 * 4) as u64;
 
 fn main() {
     let instance = wgpu::Instance::default();
@@ -66,23 +135,37 @@ fn main() {
 
     device.set_device_lost_callback(Box::new(|_, why| eprintln!("device lost: {why}")));
 
+    // **One buffer, two jobs, which is the first question.** BLAS_INPUT so
+    // the structure can be built over the positions at a stride, STORAGE so
+    // the shader can read the normals and uvs beside them. If wgpu refuses
+    // the pair, a renderer keeps two copies of every vertex it draws.
     let vertices = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some("triangle"),
-        contents: bytemuck::cast_slice(&TRIANGLE),
-        usage: wgpu::BufferUsages::BLAS_INPUT,
+        label: Some("vertices"),
+        contents: bytemuck::cast_slice(&VERTICES),
+        usage: wgpu::BufferUsages::BLAS_INPUT | wgpu::BufferUsages::STORAGE,
+    });
+    let indices = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("indices"),
+        contents: bytemuck::cast_slice(&INDICES),
+        usage: wgpu::BufferUsages::BLAS_INPUT | wgpu::BufferUsages::STORAGE,
+    });
+    let materials = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("materials"),
+        contents: bytemuck::cast_slice(&MATERIALS),
+        usage: wgpu::BufferUsages::STORAGE,
     });
 
     let size = wgpu::BlasTriangleGeometrySizeDescriptor {
         vertex_format: wgpu::VertexFormat::Float32x3,
-        vertex_count: 3,
-        index_format: None,
-        index_count: None,
+        vertex_count: VERTICES.len() as u32,
+        index_format: Some(wgpu::IndexFormat::Uint32),
+        index_count: Some(INDICES.len() as u32),
         flags: wgpu::AccelerationStructureGeometryFlags::OPAQUE,
     };
 
     let blas = device.create_blas(
         &wgpu::CreateBlasDescriptor {
-            label: Some("one triangle"),
+            label: Some("a quad"),
             flags: wgpu::AccelerationStructureFlags::PREFER_FAST_TRACE,
             update_mode: wgpu::AccelerationStructureUpdateMode::Build,
         },
@@ -93,23 +176,19 @@ fn main() {
 
     let mut tlas = device.create_tlas(&wgpu::CreateTlasDescriptor {
         label: Some("the world"),
-        max_instances: 1,
+        max_instances: TRANSFORMS.len() as u32,
         flags: wgpu::AccelerationStructureFlags::PREFER_FAST_TRACE,
         update_mode: wgpu::AccelerationStructureUpdateMode::Build,
     });
 
-    // identity, row major 3x4, and a custom index of 7 to see whether it
-    // comes back
-    tlas[0] = Some(wgpu::TlasInstance::new(
-        &blas,
-        [
-            1.0, 0.0, 0.0, 0.0, //
-            0.0, 1.0, 0.0, 0.0, //
-            0.0, 0.0, 1.0, 0.0,
-        ],
-        7,
-        0xFF,
-    ));
+    for (n, transform) in TRANSFORMS.iter().enumerate() {
+        tlas[n] = Some(wgpu::TlasInstance::new(
+            &blas,
+            *transform,
+            CUSTOM_DATA[n],
+            0xFF,
+        ));
+    }
 
     let mut encoder = device.create_command_encoder(&Default::default());
     encoder.build_acceleration_structures(
@@ -119,9 +198,9 @@ fn main() {
                 size: &size,
                 vertex_buffer: &vertices,
                 first_vertex: 0,
-                vertex_stride: 12,
-                index_buffer: None,
-                first_index: None,
+                vertex_stride: 32,
+                index_buffer: Some(&indices),
+                first_index: Some(0),
                 transform_buffer: None,
                 transform_buffer_offset: None,
             }]),
@@ -137,13 +216,13 @@ fn main() {
     });
     let answers = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("answers"),
-        size: 4 * 4 * 4 * 3,
+        size: ANSWER_BYTES,
         usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
         mapped_at_creation: false,
     });
     let read_back = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("read back"),
-        size: 4 * 4 * 4 * 3,
+        size: ANSWER_BYTES,
         usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
         mapped_at_creation: false,
     });
@@ -178,6 +257,18 @@ fn main() {
                 binding: 2,
                 resource: answers.as_entire_binding(),
             },
+            wgpu::BindGroupEntry {
+                binding: 3,
+                resource: vertices.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 4,
+                resource: indices.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 5,
+                resource: materials.as_entire_binding(),
+            },
         ],
     });
 
@@ -186,9 +277,9 @@ fn main() {
         let mut pass = encoder.begin_compute_pass(&Default::default());
         pass.set_pipeline(&pipeline);
         pass.set_bind_group(0, &bound, &[]);
-        pass.dispatch_workgroups(4, 1, 1);
+        pass.dispatch_workgroups(RAY_COUNT as u32, 1, 1);
     }
-    encoder.copy_buffer_to_buffer(&answers, 0, &read_back, 0, 4 * 4 * 4 * 3);
+    encoder.copy_buffer_to_buffer(&answers, 0, &read_back, 0, ANSWER_BYTES);
     queue.submit(std::iter::once(encoder.finish()));
 
     read_back.slice(..).map_async(wgpu::MapMode::Read, |_| ());
@@ -205,52 +296,201 @@ fn main() {
         .expect("the answers map");
     let got: &[f32] = bytemuck::cast_slice(&held);
 
-    println!("\n ray  hit     t       triangle  barycentrics        where it landed");
-    let expected = [true, true, false, false];
-    let mut right = 0;
+    report(got);
+}
 
-    // the triangle again, to put the hit back together on the CPU
-    let v = TRIANGLE;
+/// Everything the shader said, against the same arithmetic done here.
+fn report(got: &[f32]) {
+    let should_hit = [true, true, true, true, false];
+    let mut agreed = 0;
+    let mut worst = 0.0f32;
 
-    for n in 0..4 {
-        let a = &got[n * 12..n * 12 + 12];
-        let hit = a[0] > 0.5;
-        let (u, w) = (a[4], a[5]);
-        let weights = [a[8], a[9], a[10]];
+    for n in 0..RAY_COUNT {
+        let slot = |k: usize| {
+            let at = (n * SLOTS + k) * 4;
 
-        let put_back = [0, 1, 2].map(|k| {
-            weights[0] * v[0][k] + weights[1] * v[1][k] + weights[2] * v[2][k]
-        });
+            [got[at], got[at + 1], got[at + 2], got[at + 3]]
+        };
 
-        println!(
-            "  {n}   {:<6}  {:<6.3}  {:<8}  {:<6.3} {:<6.3}      {:>6.3} {:>6.3} {:>6.3}",
-            hit, a[1], a[2] as i32, u, w, put_back[0], put_back[1], put_back[2]
-        );
+        let head = slot(0);
+        let hit = head[0] > 0.5;
+        let t = head[1];
+        let triangle = head[2] as usize;
+        let custom = head[3] as u32;
 
-        if hit == expected[n] {
-            right += 1;
+        println!("\n== ray {n}");
+
+        if hit != should_hit[n] {
+            println!("   {hit}, and arithmetic says {}", should_hit[n]);
+            continue;
         }
 
-        // the ray is RAYS[n*2] going along RAYS[n*2+1], so where it struck is
-        // arithmetic the GPU never saw
-        if hit {
-            let from = RAYS[n * 2];
-            let along = RAYS[n * 2 + 1];
-            let should = [0, 1, 2].map(|k| from[k] + along[k] * a[1]);
-            let off = (0..3)
-                .map(|k| (put_back[k] - should[k]).abs())
-                .fold(0.0f32, f32::max);
+        if !hit {
+            println!("   missed, as it should");
+            agreed += 1;
+            continue;
+        }
 
+        let there = slot(1);
+        let upright = slot(2);
+        let naive = slot(3);
+        let uv = slot(4);
+        let colour = slot(5);
+        let rest = slot(6);
+        let bary = slot(7);
+
+        let which = uv[2] as usize;
+        let weights = [1.0 - bary[0] - bary[1], bary[0], bary[1]];
+
+        // the same sum, here, out of the same constants
+        let mix = |field: usize| {
+            [0, 1, 2].map(|k| {
+                (0..3)
+                    .map(|v| weights[v] * VERTICES[INDICES[triangle * 3 + v] as usize][field + k])
+                    .sum::<f32>()
+            })
+        };
+
+        let on_it = mix(0);
+        let leaning = mix(3);
+        let mine = MATERIALS[which];
+
+        let to_world = |p: [f32; 3]| {
+            let m = TRANSFORMS[which];
+
+            [0, 1, 2]
+                .map(|r| m[r * 4] * p[0] + m[r * 4 + 1] * p[1] + m[r * 4 + 2] * p[2] + m[r * 4 + 3])
+        };
+
+        let in_world = to_world(on_it);
+        let from = RAYS[n * 2];
+        let along = RAYS[n * 2 + 1];
+        let along_the_ray = [0, 1, 2].map(|k| from[k] + along[k] * t);
+
+        // **The normal, by the matrix a normal actually takes.** The inverse
+        // transpose of the linear part, worked out here rather than taken
+        // from the hit, so the shader's answer has something to be wrong
+        // against.
+        let upright_here = normalize(inverse_transpose(TRANSFORMS[which], leaning));
+        let naive_here = normalize(linear(TRANSFORMS[which], leaning));
+
+        let uv_here = [0, 1].map(|k| {
+            (0..3)
+                .map(|v| weights[v] * VERTICES[INDICES[triangle * 3 + v] as usize][6 + k])
+                .sum::<f32>()
+        });
+
+        let apart = [
+            ("where it landed", gap(&there[..3], &in_world)),
+            ("and against the ray itself", gap(&in_world, &along_the_ray)),
+            ("the normal", gap(&upright[..3], &upright_here)),
+            (
+                "the normal by object_to_world",
+                gap(&naive[..3], &naive_here),
+            ),
+            ("the uv", gap(&uv[..2], &uv_here)),
+            ("the material", gap(&colour[..3], &mine[..3])),
+        ];
+
+        println!(
+            "   t {t:.3}, triangle {triangle}, instance {which}, custom_data {custom}, front {}",
+            there[3] > 0.5
+        );
+        println!(
+            "   at    {:>7.3} {:>7.3} {:>7.3}",
+            there[0], there[1], there[2]
+        );
+        println!(
+            "   normal{:>7.3} {:>7.3} {:>7.3}   by object_to_world {:>6.3} {:>6.3} {:>6.3}",
+            upright[0], upright[1], upright[2], naive[0], naive[1], naive[2]
+        );
+        println!(
+            "   uv    {:>7.3} {:>7.3}   colour {:.2} {:.2} {:.2}, shininess {}, specular {:.2}, texture {}",
+            uv[0], uv[1], colour[0], colour[1], colour[2], rest[0], rest[1], rest[2] as i32
+        );
+
+        let mut right = true;
+
+        for (what, off) in apart {
+            if off > 1e-4 {
+                println!("   {what}: apart by {off:.5}");
+                right = false;
+            }
+            worst = worst.max(off);
+        }
+
+        let leaning_off = angle_between(&upright_here, &naive_here);
+
+        if leaning_off > 0.5 {
             println!(
-                "        ray says {:>6.3} {:>6.3} {:>6.3}, apart by {:.5}",
-                should[0], should[1], should[2], off
+                "   object_to_world leans that normal {leaning_off:.1} degrees off, which is the scale"
             );
+        }
+
+        if right {
+            agreed += 1;
         }
     }
 
-    println!("\n{right} of 4 rays answered the way arithmetic says they should");
-    println!(
-        "custom_data came back as {} and was set to 7",
-        got[3]
-    );
+    // **Every field, not just whether it hit.** This said 5 of 5 while
+    // printing four rays of disagreement, when the weights were rotated to
+    // see whether anything here could fail at all.
+    println!("\n{agreed} of {RAY_COUNT} rays agreed with this file in every field");
+    println!("worst disagreement between the shader and this file: {worst:.6}");
+}
+
+/// The linear part of a row major 3x4, applied to a vector.
+fn linear(m: [f32; 12], v: [f32; 3]) -> [f32; 3] {
+    [0, 1, 2].map(|r| m[r * 4] * v[0] + m[r * 4 + 1] * v[1] + m[r * 4 + 2] * v[2])
+}
+
+/// The matrix a normal takes: the inverse transpose of the linear part.
+fn inverse_transpose(m: [f32; 12], v: [f32; 3]) -> [f32; 3] {
+    let a = [[m[0], m[1], m[2]], [m[4], m[5], m[6]], [m[8], m[9], m[10]]];
+
+    let det = a[0][0] * (a[1][1] * a[2][2] - a[1][2] * a[2][1])
+        - a[0][1] * (a[1][0] * a[2][2] - a[1][2] * a[2][0])
+        + a[0][2] * (a[1][0] * a[2][1] - a[1][1] * a[2][0]);
+
+    // the cofactor matrix over the determinant is the inverse transpose,
+    // with no second transpose to undo: that is what makes this the short
+    // way round rather than inverting and flipping
+    let cofactor = [
+        [
+            a[1][1] * a[2][2] - a[1][2] * a[2][1],
+            a[1][2] * a[2][0] - a[1][0] * a[2][2],
+            a[1][0] * a[2][1] - a[1][1] * a[2][0],
+        ],
+        [
+            a[0][2] * a[2][1] - a[0][1] * a[2][2],
+            a[0][0] * a[2][2] - a[0][2] * a[2][0],
+            a[0][1] * a[2][0] - a[0][0] * a[2][1],
+        ],
+        [
+            a[0][1] * a[1][2] - a[0][2] * a[1][1],
+            a[0][2] * a[1][0] - a[0][0] * a[1][2],
+            a[0][0] * a[1][1] - a[0][1] * a[1][0],
+        ],
+    ];
+
+    [0, 1, 2].map(|r| (cofactor[r][0] * v[0] + cofactor[r][1] * v[1] + cofactor[r][2] * v[2]) / det)
+}
+
+fn normalize(v: [f32; 3]) -> [f32; 3] {
+    let len = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
+
+    v.map(|k| k / len)
+}
+
+fn gap(a: &[f32], b: &[f32]) -> f32 {
+    a.iter()
+        .zip(b)
+        .map(|(x, y)| (x - y).abs())
+        .fold(0.0f32, f32::max)
+}
+
+fn angle_between(a: &[f32; 3], b: &[f32; 3]) -> f32 {
+    let dot = (0..3).map(|k| a[k] * b[k]).sum::<f32>().clamp(-1.0, 1.0);
+
+    dot.acos().to_degrees()
 }
