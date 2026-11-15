@@ -62,8 +62,6 @@ To build on the engine instead, `cargo add blitzkit`. Rust 1.87 or newer.
 `./check-all` tests and lints every crate in dependency order, then runs
 `./check-tunnel`.
 
-[COPY - Jake]
-
 `./push` pushes every repo that has work, engine first, and refuses to start
 if any of them has uncommitted changes. A change often lands in two repos at
 once, and pushing them one at a time by hand is how one gets left behind.
