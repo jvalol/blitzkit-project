@@ -35,6 +35,7 @@
 !/stamp
 !/check-fresh
 !/release
+!/push
 !/play
 !/.cargo
 
