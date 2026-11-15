@@ -106,6 +106,18 @@ for name in "${wanted[@]}"; do
   # front is right for a full run and wrong for the usual one: naming two
   # examples deleted the other ten, which the gate then reported as ten builds
   # nothing plays.
+  # **Kept to compare against, not to fall back on.** A rebuild of an
+  # unchanged game writes the same bytes, and stamping it anyway leaves
+  # web/MADE dirty after a build that changed nothing: on 2026-11-15 the
+  # engine's water commit was followed by a rebuild whose eighteen bundles
+  # were all byte-identical and whose stamp moved, which ./push then
+  # refused to push over. What the stamp says is where a build came from,
+  # and bytes that have not moved came from where they always did.
+  was=$(mktemp -d)
+  for file in "$name.js" "${name}_bg.wasm"; do
+    [ -e "$OUT/$file" ] && cp "$OUT/$file" "$was/$file"
+  done
+
   rm -f "$OUT/$name.js" "$OUT/${name}_bg.wasm"
 
   if [ "$kind" = example ]; then
@@ -123,11 +135,29 @@ for name in "${wanted[@]}"; do
   wasm-bindgen --target web --no-typescript --out-dir "$OUT" --out-name "$name" \
     "$built/wasm32-unknown-unknown/release/$from/$built_as.wasm"
 
+  # Both files the same as they were, and MADE already saying where they
+  # came from, is a build that produced nothing new. A missing row is not
+  # that: MADE can be deleted, and a build whose bytes match an unrecorded
+  # file still has to be written down.
+  same=yes
+  for file in "$name.js" "${name}_bg.wasm"; do
+    if [ ! -e "$was/$file" ] || ! cmp -s "$was/$file" "$OUT/$file"; then
+      same=
+    fi
+  done
+  rm -rf "$was"
+
+  if [ -z "$(grep "^$name\.js	" "$OUT/MADE" 2>/dev/null)" ]; then
+    same=
+  fi
+
   # written down as it is made, so ./check-fresh can say how far behind this
   # build is without anybody having to remember. Two commits: the engine, and
   # the repo it was built out of when that is not the engine. An example is
   # the engine's own and names no second one.
-  if [ "$kind" = example ]; then
+  if [ -n "$same" ]; then
+    say "   unchanged, so its stamp stands"
+  elif [ "$kind" = example ]; then
     ./stamp "$OUT/MADE" "$name.js" "${name}_bg.wasm"
   elif [ "$name" = capriccio ]; then
     # **Three things, not two.** Its build.rs bakes every game's screenshot
