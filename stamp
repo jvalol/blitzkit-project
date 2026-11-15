@@ -60,8 +60,38 @@
 #   engine. Left off for an example, which is the engine's own.
 #   --bakes names files carried inside the thing from outside its repo,
 #   as one unquoted glob. A dash when there are none.
+#
+# Usage: ./stamp --inputs
+#   the paths in blitzkit that a derived thing is built out of, one a line.
+#   Asked for rather than spelled out again, for the reason below.
 
 set -euo pipefail
+
+# **What the engine's artefacts are made from, said once.** This was `src
+# examples` here and `src` in ./check-fresh, two lists of one thing, and they
+# had already come apart: the shaders are include_str!'d out of res/shaders
+# and neither list named them. Four engine commits have changed a shader and
+# nothing else under here (51452ed, e5e34b3, 37c6e18, 5800fdc), and every one
+# of them changed what every browser build draws while ./check-fresh reported
+# all eighteen level with the engine. The water one was 51452ed, today.
+#
+# Cargo.toml and Cargo.lock are not in it, and that is a hole left open rather
+# than one nobody saw. A dependency bump would change every build. But every
+# commit in this repo touching those two files and nothing under src or res is
+# either a release version bump or packaging metadata (checked: twenty of them,
+# 0.8.0 to 0.16.0, plus 94a908e and a10bbad), so naming them would mark all
+# eighteen stale over a version string every release and catch a real bump
+# never. Add them the first time a bump catches somebody out.
+inputs() {
+  echo src
+  echo res
+  echo examples
+}
+
+if [ "${1:-}" = --inputs ]; then
+  inputs
+  exit 0
+fi
 
 manifest=$1
 shift
@@ -89,7 +119,8 @@ fi
 engine=$(git -C blitzkit rev-parse --short HEAD 2>/dev/null || echo unknown)
 # a dirty tree is not the commit it claims to be, and saying so is cheaper
 # than pretending
-if ! git -C blitzkit diff --quiet -- src examples 2>/dev/null; then
+# shellcheck disable=SC2046
+if ! git -C blitzkit diff --quiet -- $(inputs) 2>/dev/null; then
   engine="$engine+"
 fi
 when=$(date '+%Y-%m-%dT%H:%M')

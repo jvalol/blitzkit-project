@@ -44,11 +44,35 @@ unwritten=0
 # meant that deleting tower marked teapot two commits behind, and rebuilding
 # teapot then produced byte identical output. A counter that counts changes to
 # other people's files is the false alarm this was written to avoid.
+#
+# **And what the engine is made of is ./stamp's to say, not this file's.** It
+# said `src` and stamp said `src examples`, which is the two-lists fault this
+# project keeps hitting, and it had already bitten: the shaders live in
+# res/shaders and are include_str!'d into src, so a shader-only engine commit
+# changed every browser build and this counted nothing. 51452ed did exactly
+# that today.
 behind_engine() {
   local was=${1%+} name=$2
   [ "$was" = unknown ] && { echo "?"; return; }
 
-  local mine=(src)
+  # everything the engine's artefacts are built out of, except other
+  # examples, for the reason just above. ./stamp --inputs names examples/ as
+  # a whole and this narrows it to the one that is mine.
+  local mine=()
+  local path
+  while read -r path; do
+    [ "$path" = examples ] && continue
+    mine+=("$path")
+  done < <(./stamp --inputs)
+
+  # **And it says so rather than dying, or passing.** bash 3.2, which is what
+  # /usr/bin/env bash is on this Mac, treats "${empty[@]}" under set -u as an
+  # unbound variable and kills the script, so a ./stamp that cannot be run from
+  # here would have taken the whole report down at the first row. Reported as
+  # unreadable instead, which is the answer the caller already handles and the
+  # only one that is not a quiet yes.
+  [ ${#mine[@]} = 0 ] && { echo "?"; return; }
+
   [ -f "blitzkit/examples/$name.rs" ] && mine+=("examples/$name.rs")
 
   git -C blitzkit rev-list --count "$was"..HEAD -- "${mine[@]}" 2>/dev/null || echo "?"
