@@ -97,18 +97,28 @@ RATE=${RATE:-30}
 # account of where all of those are, and this file is the last place that
 # should hold one.
 #
-# 58 seconds for a route that is 113 metres of walking and 19 of standing.
+# 60 seconds for a route that is 113 metres of walking and 19 of standing.
 #
-# **And the still comes from 28 seconds in, which is the hall.** It was 25.5,
-# which lands in the dark room behind the wall: the picture on the examples
-# page was a near-black corridor with the help text as the brightest thing in
-# it, and had been for as long as the clip has existed. Nothing is wrong with
-# that frame except that it is the one frame of the tour that shows nothing.
-# Jake picked 28 off a contact sheet of the clip on 2026-11-14.
+# **And the still comes from 31.5 seconds in, which is the hall.** It was
+# 25.5, which lands in the dark room behind the wall: the picture on the
+# examples page was a near-black corridor with the help text as the brightest
+# thing in it, and had been for as long as the clip has existed. Nothing is
+# wrong with that frame except that it is the one frame of the tour that
+# shows nothing. Jake picked 28 off a contact sheet of the clip on
+# 2026-11-14.
 # Run in a test rather than measured off a take, by
 # `the_clip_walks_the_whole_route`, which drives the game's own frame loop and
-# prints what the route costs: 54.2 seconds. The rest is a few seconds of the
-# pool to end on.
+# prints what the route costs. The rest is a few seconds of the pool to end
+# on.
+#
+# **Both numbers moved on 2026-11-15 and neither is a new decision.** Spec
+# 0088 put a beat at the way out before the bridge, which costs about three
+# seconds, and everything after it shifted: the route went 54.2 to 56.5, so
+# 58 left a second and a half of pool where it used to leave nearly four, and
+# Jake's 28 landed back in the dark room it was moved out of. 31.5 is the
+# middle of the hall stretch, which now runs 29.5 to 34.0, and is an attempt
+# to keep the frame he chose rather than to choose a different one. If it is
+# not the frame he wanted, the contact sheet is the way to pick again.
 #
 # It was 56 until 2026-11-12, when the route gained a second look from the
 # same place it looks at Bifrost from: up at the moon, which spec 0065 gave a
@@ -162,7 +172,7 @@ ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
 chain	1.5	8	7.4	1 tap:right:20:0.035 3
 knot	1	8	4	hold:right:1.6 m 1.2 m 1.0 down 1.2 up
 load	3	15	12	1.5 m 1.5 up 1.5 up 1.5 up 2
-capriccio	2.5	58	28	film:clip --done
+capriccio	2.5	60	31.5	film:clip --done
 LIST
 )
 
