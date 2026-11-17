@@ -294,7 +294,7 @@ same_clip() {
     -f rawvideo -pix_fmt rgba "$b" -y </dev/null &
   two=$!
 
-  "$APART" "$a" "$b" "$w" "$h" >/dev/null 2>&1
+  APART_SAID=$("$APART" "$a" "$b" "$w" "$h" 2>/dev/null)
   ok=$?
 
   kill "$one" "$two" 2>/dev/null || true
@@ -443,6 +443,7 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
     kept=$((kept + 1))
   else
     mv "$LOGS/$name.mp4" "$OUT/$name.mp4"
+    [ -n "${APART_SAID:-}" ] && say "   it is a different clip: $APART_SAID"
   fi
 
   # and a still out of the moment this one is about, which is the poster the
