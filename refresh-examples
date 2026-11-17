@@ -250,6 +250,7 @@ wanted=("$@")
 
 say "== building the examples"
 (cd blitzkit && cargo build --release --examples --quiet)
+(cd blitzkit && cargo build --release --bin clips-apart --quiet)
 (cd capriccio && cargo build --release --quiet)
 
 # Where cargo put them, asked rather than assumed. The repos here share one
@@ -259,6 +260,50 @@ TARGET=$(cd blitzkit && cargo metadata --format-version 1 --no-deps |
   python3 -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')/release
 # the building is a binary of its own, not an example, so it is named here
 CAPRICCIO=$TARGET/capriccio
+# and so is the thing that says whether a refilmed clip is a new clip
+APART=$TARGET/clips-apart
+
+# Whether these two clips are the same clip, which decides whether a refilmed
+# one is kept or thrown away. Spec 0084.
+#
+# **Because a refilmed clip and a changed clip looked the same in a diff.**
+# menger's render has a coverage tie that multisampling decides differently
+# from one run to the next, so every refresh wrote a different menger for no
+# reason anybody could state, and capriccio's clip had started doing it too.
+# The whole of that drift is one pixel of one frame by three levels, which is
+# inside `picture::CHANNEL` and inside `picture::SHARE` both.
+#
+# Decoded on both sides, never drawn against decoded: a fresh frame differs
+# from a decoded one everywhere from the compression alone, which would make
+# this answer yes to everything.
+#
+# The writers are killed rather than waited for. `clips-apart` stops at the
+# shorter of the two streams, so a clip that got longer leaves an ffmpeg
+# blocked on a fifo nobody is reading.
+same_clip() {
+  local was=$1 now=$2 w=$3 h=$4 one two ok
+  local a="$LOGS/was.rgba" b="$LOGS/now.rgba"
+
+  rm -f "$a" "$b"
+  mkfifo "$a" "$b"
+
+  ffmpeg -nostdin -hide_banner -loglevel error -i "$was" \
+    -f rawvideo -pix_fmt rgba "$a" -y </dev/null &
+  one=$!
+  ffmpeg -nostdin -hide_banner -loglevel error -i "$now" \
+    -f rawvideo -pix_fmt rgba "$b" -y </dev/null &
+  two=$!
+
+  "$APART" "$a" "$b" "$w" "$h" >/dev/null 2>&1
+  ok=$?
+
+  kill "$one" "$two" 2>/dev/null || true
+  wait "$one" 2>/dev/null || true
+  wait "$two" 2>/dev/null || true
+  rm -f "$a" "$b"
+
+  return $ok
+}
 
 # media/ at the engine's root and not site/static/media, which is a copy
 # site/scripts/build takes at build time and git ignores. Writing to the copy
@@ -273,6 +318,7 @@ LOGS=$(mktemp -d)
 trap 'rm -rf "$LOGS"' EXIT
 
 made=0
+kept=0
 missed=0
 
 while IFS=$'\t' read -r name settle seconds poster keys; do
@@ -375,7 +421,7 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   ffmpeg -nostdin -hide_banner -loglevel error \
     -f rawvideo -pix_fmt rgba -s "${wide}x${tall}" -framerate 60 -i "$frames" \
     -r "$RATE" -c:v libx264 -preset slow -crf "$QUALITY" \
-    -pix_fmt yuv420p -movflags +faststart -an "$OUT/$name.mp4" -y </dev/null &
+    -pix_fmt yuv420p -movflags +faststart -an "$LOGS/$name.mp4" -y </dev/null &
   encoding=$!
 
   # shellcheck disable=SC2086
@@ -389,6 +435,15 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
     continue
   fi
   rm -f "$frames"
+
+  # and kept only if it is a different clip, per spec 0084.
+  if [ -f "$OUT/$name.mp4" ] && same_clip "$OUT/$name.mp4" "$LOGS/$name.mp4" "$wide" "$tall"; then
+    say "   $OUT/$name.mp4 is the clip it already was"
+    rm -f "$LOGS/$name.mp4"
+    kept=$((kept + 1))
+  else
+    mv "$LOGS/$name.mp4" "$OUT/$name.mp4"
+  fi
 
   # and a still out of the moment this one is about, which is the poster the
   # clip shows before it loads and the picture a readme can use.
@@ -485,5 +540,8 @@ if [ "$missed" -gt 0 ]; then
   say "$made made, $missed missed."
 else
   say "$made made."
+fi
+if [ "$kept" -gt 0 ]; then
+  say "$kept of them came back the clip they already were and were left alone."
 fi
 say "Watch them before committing: a staged clip can stage the wrong thing."
