@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Remakes every picture and clip this project publishes.
+#
+# **Because "the media" is two scripts and nobody holds both in their head.**
+# ./refresh-examples does the engine's clips and stills, ./refresh-screenshots
+# does each game's own staged shot, and ./check-all reports the two of them in
+# one section as though one thing were behind. Asked for the media on
+# 2026-11-17, this ran the first and had to be asked again for the second.
+# The pairing existed in a message and nowhere anybody could run.
+#
+# **One after the other, and never at once.** Both drive the GPU, both open a
+# window, and both photograph a window they found by name. Two at a time is
+# how a game gets photographed holding another game's frame, which is the
+# first trap the screenshot skill writes down. They also share one cargo
+# lock, so running them together would serialise anyway and buy nothing.
+#
+# **Both are attempted even when the first fails.** They remake different
+# things and neither needs the other to have worked. What a failure changes
+# is what this says at the end and what it exits with, not how much it did.
+#
+# It takes no names. The two underneath both do, and they mean different
+# things by them: an example to ./refresh-examples, a repo to
+# ./refresh-screenshots. One flag that meant either would be a flag that
+# means neither, so a single thing is asked of the script that owns it.
+#
+# Usage: ./refresh-media
+set -uo pipefail
+cd "$(dirname "$0")" || exit 1
+
+if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+  sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'
+  exit 0
+fi
+
+if [ "$#" -gt 0 ]; then
+  echo "./refresh-media takes no names. For one of them:"
+  echo "  ./refresh-examples <example>..."
+  echo "  ./refresh-screenshots <repo>..."
+  exit 1
+fi
+
+# **How many rustc at once**, which is ./check-all's number and its reason:
+# one per core is eighteen on this machine, and eighteen linking at once has
+# filled its memory before. Overridable, because the number is the machine's.
+export CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS:-4}
+
+failed=()
+
+echo "== the engine's clips and stills"
+if ! ./refresh-examples; then
+  failed+=("refresh-examples")
+fi
+
+echo
+echo "== each game's own staged shot"
+if ! ./refresh-screenshots; then
+  failed+=("refresh-screenshots")
+fi
+
+echo
+if [ "${#failed[@]}" -gt 0 ]; then
+  echo "failed: ${failed[*]}"
+  echo "What the other one remade is still remade. ./check-all says what is"
+  echo "still behind."
+  exit 1
+fi
+
+echo "every clip and picture is remade. They are derived, so they want a"
+echo "commit of their own, after whatever changed the thing they show."
