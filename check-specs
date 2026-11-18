@@ -33,8 +33,30 @@ cd "$(dirname "$0")" || exit 1
 
 # The list comes from ./list-repos, which reads the disk. It was an array here
 # and it fell behind check-all's by a whole game.
+#
+# **Unless a repo is named, in which case only that one is read.** Every
+# package's tests have to be listed to check a citation, and listing them
+# means building them, so the whole project is five minutes. A repo's own
+# `scripts/ship` cannot pay that for the other five repos it did not touch,
+# and until 2026-11-18 it paid nothing instead: capriccio shipped a3db293
+# with two citations its own commit had just killed, because ship runs that
+# repo's gate and `check-all` is the only thing that ran this.
+#
+# Named as paths from here, the way `./list-repos` prints them.
 repos=()
-while read -r repo; do repos+=("$repo"); done < <(./list-repos)
+
+if [ "$#" -gt 0 ]; then
+  for named in "$@"; do
+    if [ ! -d "$named" ]; then
+      echo "  no $named here to check"
+      exit 1
+    fi
+
+    repos+=("$named")
+  done
+else
+  while read -r repo; do repos+=("$repo"); done < <(./list-repos)
+fi
 missing=0
 
 for repo in "${repos[@]}"; do
