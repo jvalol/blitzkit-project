@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# Refuses any [COPY - Jake] marker still sitting in a repo here.
+#
+# The marker means a string was drafted for Jake and he has not made it his
+# yet. Nothing in a cargo run reads prose, so a marker travels: one nearly
+# went to crates.io in a readme on 2026-09-26, and two sat in lantern's own
+# on-screen readout where neither the readme check nor the site check was
+# looking.
+#
+# **Its own file because two things want it.** ./check-all ran this as a loop
+# of its own, and capriccio's ./scripts/ship wanted the same answer before a
+# commit, where check-all is far too slow to run. Written twice it would be
+# two lists of one thing, which is the fault this project has already named
+# under five other names. Written here it is one.
+#
+# **src and the readme, and those two for a reason.** The readme is published
+# on GitHub and is copy. Every string a game draws is copy too and lives in
+# Rust rather than markdown, which is how the lantern pair were missed.
+# Anything else a repo publishes is prose in a signed file, which is
+# ~/.claude/voice/check-voice's job and not this one.
+#
+# Usage: ./check-copy [<repo> ...]
+#   (none)   every repo ./list-repos names, and this one
+#   <repo>   only those, by path
+set -uo pipefail
+
+if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+  sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'
+  exit 0
+fi
+
+here=$(cd "$(dirname "$0")" && pwd)
+
+repos=()
+if [ "$#" -gt 0 ]; then
+  repos=("$@")
+else
+  while IFS= read -r line; do
+    repos+=("$here/$line")
+  done < <(cd "$here" && ./list-repos)
+  repos+=("$here")
+fi
+
+found=0
+
+for repo in "${repos[@]}"; do
+  for where in "$repo/src" "$repo/README.md"; do
+    [ -e "$where" ] || continue
+
+    if grep -rq '\[COPY - Jake\]' "$where"; then
+      echo "$where still carries copy markers:"
+      grep -rn '\[COPY - Jake\]' "$where" | sed 's/^/  /'
+      found=$((found + 1))
+    fi
+  done
+done
+
+if [ "$found" -gt 0 ]; then
+  echo
+  echo "Those words are not Jake's yet. He strikes the marker himself, by"
+  echo "editing the string, by approving it with the line on screen, or with"
+  echo "~/.claude/voice/sign-copy."
+  exit 1
+fi
+
+exit 0

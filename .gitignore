@@ -16,6 +16,7 @@
 !/LICENSE-APACHE
 !/list-repos
 !/check-all
+!/check-copy
 !/check-listings
 !/check-specs
 !/check-tunnel
