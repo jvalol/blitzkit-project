@@ -82,10 +82,20 @@ set -euo pipefail
 # 0.8.0 to 0.16.0, plus 94a908e and a10bbad), so naming them would mark all
 # eighteen stale over a version string every release and catch a real bump
 # never. Add them the first time a bump catches somebody out.
+#
+# **Except the engine's own tools.** Nothing under src/bin reaches a derived
+# thing. Cargo compiles a bin only when it is asked for by name, and
+# ./build-web asks for `--example <name>` for an example and for a game
+# repo's own default targets otherwise, so no browser build, clip or still
+# has ever held a byte of one. Adding src/bin/picture-of.rs on 2026-11-19
+# marked all thirty-six browser builds stale, and rebuilding every one of
+# them would have produced what was already there. It cost a --no-verify
+# push instead, which is the gate being stepped over rather than answered.
 inputs() {
   echo src
   echo res
   echo examples
+  echo ':(exclude)src/bin'
 }
 
 if [ "${1:-}" = --inputs ]; then
