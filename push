@@ -25,6 +25,13 @@
 # ./check-all here would make a push take minutes and nobody would use it,
 # which is the lesson ./check-fresh already writes down.
 #
+# **With one refusal it answers rather than reports.** blitzkit's hook refuses
+# a push whose browser builds are older than the engine, and the answer is the
+# same three steps every time: rebuild, commit web/, push again. Any commit to
+# the engine's src brings it up, so on a working day it is most of them, and
+# doing it by hand is where the second push gets forgotten. Which is the thing
+# this whole file is about.
+#
 # Usage: ./push [<repo> ...]
 #   (none)   every repo with commits origin has not got, engine first
 #   <repo>   only those, still in dependency order
@@ -35,7 +42,10 @@ set -uo pipefail
 cd "$(dirname "$0")" || exit 1
 
 if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
-  sed -n '2,32p' "$0" | sed 's/^# \{0,1\}//'
+  # the comment under the shebang, however long it has become. It was
+  # `2,32p`, a number nothing was keeping, in a project whose own hook
+  # carries a note about exactly that.
+  sed -n '2,$ { /^#/!q; s/^# \{0,1\}//; p; }' "$0"
   exit 0
 fi
 
@@ -105,10 +115,89 @@ if [ "${#pushing[@]}" -eq 0 ]; then
   exit 0
 fi
 
+# **What is stale is the hook's question, and this does not ask it again.**
+# It reads the hook's own refusal and answers it, so there is no second
+# account here of which builds are behind or of what counts as behind. If
+# that wording ever changes this stops rather than guessing, which is the
+# safe way round: a push nobody rebuilt for is refused, where a rebuild
+# nobody needed is minutes.
+#
+# Every other refusal is left alone. An unsigned string or a site promising
+# a version nobody published wants a person, and there is nothing mechanical
+# to do about either.
+answerable() {
+  local log=$1
+  local refusal="the browser builds are behind the engine"
+
+  # **And said out loud if it ever stops being the hook's wording.** That
+  # line lives in another file, which is a coupling, and the way it breaks
+  # is the quiet one: this would simply never answer again and nobody would
+  # know why. Checked where it is used rather than held by a check of its
+  # own, which is a file to remember on top of a line to remember.
+  if ! grep -q "$refusal" blitzkit/scripts/pre-push 2>/dev/null; then
+    echo
+    echo "   this no longer knows blitzkit's refusal by sight, so it is not"
+    echo "   answering it. See scripts/pre-push and the note above."
+    return 1
+  fi
+
+  grep -q "$refusal" "$log"
+}
+
+answered() {
+  local repo=$1 at message
+
+  ./build-web || return 1
+
+  at=$(git -C "$repo" rev-parse --short HEAD)
+  if git -C "$repo" diff --quiet -- web ':(exclude)web/MADE'; then
+    message="Record the browser builds against $at, since the bytes are the ones already there"
+  else
+    message="Rebuild the browser builds against $at, since that commit moved their bytes"
+  fi
+
+  # staged, so that a build for a game that has not had one before is in
+  # the commit; then committed by path, so that nothing else anybody had
+  # staged goes out with it.
+  git -C "$repo" add web || return 1
+  git -C "$repo" commit -q -m "$message" -- web || return 1
+
+  echo "   $message"
+  echo
+
+  git -C "$repo" push
+}
+
 for repo in "${pushing[@]}"; do
   echo "== $repo, $(ahead_of_origin "$repo") to push"
 
-  if ! git -C "$repo" push; then
+  # **Held rather than streamed**, because whether it is worth reading
+  # depends on how this ends. The refusal above names eighteen builds and
+  # then gives the command for doing by hand the thing the next line of
+  # this does automatically, and printed in a run that goes on to succeed
+  # it reads as a failure. So it is kept, and shown only when nobody is
+  # going to act on it.
+  #
+  # The cost is that a push says nothing while its hook runs, which is
+  # about fifteen seconds of copy checks. The `==` line above is there
+  # before any of it.
+  log=$(mktemp)
+  git -C "$repo" push > "$log" 2>&1
+  pushed=$?
+
+  if [ "$pushed" != 0 ] && answerable "$log"; then
+    echo "   the browser builds are older than this commit, so they are being"
+    echo "   rebuilt rather than reported."
+    echo
+
+    answered "$repo" && pushed=0
+  else
+    cat "$log"
+  fi
+
+  rm -f "$log"
+
+  if [ "$pushed" != 0 ]; then
     echo
     echo "$repo refused. Nothing after it has been pushed, so the order holds:"
     echo "fix that one and run this again."
