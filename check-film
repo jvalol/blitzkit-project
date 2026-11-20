@@ -31,7 +31,19 @@ TARGET=$(cd blitzkit && cargo metadata --format-version 1 --no-deps |
 # Two of them: one that says nothing while it runs and one that does not.
 # load is the reason this file exists and is the whole point of checking more
 # than one.
-for name in rolling load; do
+FILMS=(rolling load)
+
+# **Built here rather than hoped for.** Nothing else in the gate builds the
+# engine's examples, so for as long as this check has existed it has run
+# against whatever an earlier build happened to leave in the target directory.
+# On a cleaned tree it found nothing to run and failed having checked nothing
+# (2026-11-20). The list above is the one place the names are written, so
+# building it cannot fall out of step with running it.
+building=()
+for name in "${FILMS[@]}"; do building+=(--example "$name"); done
+(cd blitzkit && cargo build --release --quiet "${building[@]}")
+
+for name in "${FILMS[@]}"; do
   binary="$TARGET/examples/$name"
 
   if [ ! -x "$binary" ]; then
