@@ -100,10 +100,26 @@ sha() {
   fi
 }
 
+# **And something to run it with.** A grep of the source says who takes the
+# flag, and the engine is where the flag is implemented, so the engine says
+# yes and has no binary to photograph: every run of this printed
+# `blitzkit drew nothing for the staged shot` and then carried on, correct and
+# alarming, from the day the grep went in until 2026-11-20. A crate with no
+# binary cannot stage a shot however much of the flag it defines.
+#
+# `src/main.rs` is how all fifteen of the runnable ones declare it and
+# `[[bin]]` is the other way cargo allows, so both count. Asking cargo itself
+# would be truer and costs a `cargo metadata` per repo to answer a question
+# about a file.
+runnable() {
+  [ -f "$1/src/main.rs" ] || grep -qF '[[bin]]' "$1/Cargo.toml" 2>/dev/null
+}
+
 # Which repos can stage a shot. The disk is the list, as it is for check-all.
 staged() {
   while read -r repo; do
     [ -d "$repo/src" ] || continue
+    runnable "$repo" || continue
     if grep -rqF -- '--screenshot' "$repo/src"; then
       printf '%s\n' "$repo"
     fi
@@ -126,6 +142,12 @@ for repo in "${wanted[@]}"; do
   name=$(basename "$repo")
   if ! grep -rqF -- '--screenshot' "$repo/src" 2>/dev/null; then
     say "== $name does not take --screenshot, skipped"
+    continue
+  fi
+
+  # named on the command line, so it is said out loud rather than filtered
+  if ! runnable "$repo"; then
+    say "== $name has no binary to photograph, skipped"
     continue
   fi
 
