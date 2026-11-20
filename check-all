@@ -193,6 +193,51 @@ if ! ./check-film; then
   failed+=("a film is not frames")
 fi
 
+# **The cache that throttled all of this and said nothing.** Incremental rustc
+# writes one object file per codegen unit into target/debug/deps and nothing
+# ever collects them. By 2026-11-20 there were 2.78 million, and they cost this
+# gate 4,187s against the 182s it takes with them gone. Every repo was slow,
+# every picture test was slow, and no check here had anything to say about it.
+# Spec 0062 has the measurements.
+#
+# **A hundred thousand, and why that number.** One run of this gate leaves
+# about 10,700 behind, so a hundred thousand is ten runs' worth of fresh
+# compiles. It is also a tenth of the smallest pile measured to cost anything:
+# a million of them made one rebuild take 26s where a clean tree took 1s. It is
+# not a measured threshold for where the slowness starts, and nothing here
+# claims it is.
+#
+# This reports and never fails. A full cache is the normal state of a machine
+# that builds, and the moment to empty it is Jake's to pick.
+#
+# **Counted with an early exit, because the obvious way is not cheap.**
+# `ls -U | head` looks bounded and is not: ls reads the whole directory before
+# a line of it reaches head, which took 107s on the three million and 0.06s on
+# a clean tree. Stopping at the cap itself is 0.35s against 0.06s, so this
+# costs about the same either way, which is what lets it run every time.
+echo "== the build directory"
+deps=target/debug/deps
+if [ ! -d "$deps" ]; then
+  echo "   nothing built here yet"
+else
+  piled=$(python3 -c 'import os,sys
+d = sys.argv[1]
+cap = int(sys.argv[2])
+n = 0
+with os.scandir(d) as it:
+    for _ in it:
+        n += 1
+        if n > cap:
+            break
+print(n)' "$deps" 100000)
+  if [ "$piled" -gt 100000 ]; then
+    echo "   over 100,000 files in $deps, which is what slows every cargo call"
+    echo "   and every test binary in the tree. cargo clean empties it. Spec 0062."
+  else
+    echo "   $piled files in $deps"
+  fi
+fi
+
 echo
 if [ ${#failed[@]} -eq 0 ]; then
   echo "all ${#repos[@]} crates pass, nothing ships in Claude's words, and the tunnel example matches slider"
