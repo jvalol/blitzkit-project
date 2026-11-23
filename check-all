@@ -95,7 +95,7 @@ fi
 # a game draws is copy too and lives in Rust rather than markdown, so neither
 # ship-check nor a prose check was ever going to see either.
 #
-# **Asked of ./check-copy rather than looped over here.** capriccio's
+# **Asked of ./check-copy rather than looped over here.** xanadu's
 # ./scripts/ship wants the same answer before a commit, where this script is
 # far too slow to run, and the same grep written in two places is two lists
 # of one thing.

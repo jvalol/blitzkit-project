@@ -5,7 +5,7 @@
 # in two of them: the engine grows a thing and a game uses it. Pushed one at a
 # time, by hand, there is a window where what is on GitHub does not hold
 # together. On 2026-11-15 a shader went into blitzkit and the picture it
-# changed was blessed in capriccio, and whichever of the two went first left a
+# changed was blessed in xanadu, and whichever of the two went first left a
 # clean clone of the pair failing one test.
 #
 # The window cannot be closed. Nothing pushes two repos at once and nobody is

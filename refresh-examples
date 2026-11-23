@@ -38,7 +38,7 @@
 #
 # **Two runs give the same bytes for fourteen of the sixteen.** menger and
 # load do not, measured over two runs each of all of them on 2026-11-04;
-# everything else matches to the byte, capriccio's 46 seconds included, so
+# everything else matches to the byte, xanadu's 46 seconds included, so
 # it is not length and not scene size. See spec 0084.
 #
 # The keys are a file the engine plays rather than events posted at the
@@ -90,7 +90,7 @@ RATE=${RATE:-30}
 # press, which the table's numbers were written around. A key is an instant in
 # the log, so the gaps between them are the gaps written here.
 #
-# **capriccio's route is places rather than keys, per spec 0049.** The column
+# **xanadu's route is places rather than keys, per spec 0049.** The column
 # says `film:clip` and the route itself is `tour::clip`, which reads the
 # building's own accessors for every place it names: the pond, the planets,
 # the bookcase, the baths, the pool. Written out here it would be a second
@@ -172,7 +172,7 @@ ripple	1	9	5.5	1 space 1.6 space 1.6 space 1.6 space
 chain	1.5	8	7.4	1 tap:right:20:0.035 3
 knot	1	8	4	hold:right:1.6 m 1.2 m 1.0 down 1.2 up
 load	3	15	12	1.5 m 1.5 up 1.5 up 1.5 up 2
-capriccio	2.5	60	31.5	film:clip --done
+xanadu	2.5	60	31.5	film:clip --done
 LIST
 )
 
@@ -251,7 +251,7 @@ wanted=("$@")
 say "== building the examples"
 (cd blitzkit && cargo build --release --examples --quiet)
 (cd blitzkit && cargo build --release --bin clips-apart --quiet)
-(cd capriccio && cargo build --release --quiet)
+(cd xanadu && cargo build --release --quiet)
 
 # Where cargo put them, asked rather than assumed. The repos here share one
 # target directory at the project root, so blitzkit/target does not exist and
@@ -259,7 +259,7 @@ say "== building the examples"
 TARGET=$(cd blitzkit && cargo metadata --format-version 1 --no-deps |
   python3 -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')/release
 # the building is a binary of its own, not an example, so it is named here
-CAPRICCIO=$TARGET/capriccio
+CAPRICCIO=$TARGET/xanadu
 # and so is the thing that says whether a refilmed clip is a new clip
 APART=$TARGET/clips-apart
 
@@ -269,7 +269,7 @@ APART=$TARGET/clips-apart
 # **Because a refilmed clip and a changed clip looked the same in a diff.**
 # menger's render has a coverage tie that multisampling decides differently
 # from one run to the next, so every refresh wrote a different menger for no
-# reason anybody could state, and capriccio's clip had started doing it too.
+# reason anybody could state, and xanadu's clip had started doing it too.
 # The whole of that drift is one pixel of one frame by three levels, which is
 # inside `picture::CHANNEL` and inside `picture::SHARE` both.
 #
@@ -338,7 +338,7 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   case "${keys:-}" in
     film:*)
       # the column is the route, and then any flags that run needs.
-      # capriccio's clip asks for --done, because spec 0054 puts Bifrost up
+      # xanadu's clip asks for --done, because spec 0054 puts Bifrost up
       # only for a building that has been finished and the clip ends by
       # looking at it.
       route=${keys#film:}
@@ -354,10 +354,10 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # stills.
   runs=${name%-glass}
 
-  # and where it lives. capriccio is a binary in its own repo rather than an
+  # and where it lives. xanadu is a binary in its own repo rather than an
   # example in the engine's, and it is on the site like the examples are, so
   # it is filmed like them.
-  if [ "$runs" = capriccio ]; then
+  if [ "$runs" = xanadu ]; then
     binary=$CAPRICCIO
   else
     binary="$TARGET/examples/$runs"
@@ -370,7 +370,7 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   fi
 
   # **Asked whether the route still works before anything is filmed.** Spec
-  # 0042. capriccio's panel takes all four arrows while the sight is on it,
+  # 0042. xanadu's panel takes all four arrows while the sight is on it,
   # so a route that walks past the panel stops turning and keeps holding keys
   # at a camera that is pointed at a wall. That is what the clip published on
   # the 26th of October was, and no frame of it looks wrong.
@@ -383,7 +383,7 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # goes where it says is `tour::tests::the_clip_s_tour_gets_all_the_way_round`,
   # which plans every leg of it in the gate, works the two doors on the way,
   # and names the legs that fail.
-  if [ "$runs" = capriccio ] && [ -n "${keys:-}" ] && ! "$binary" "--walk=$keys"; then
+  if [ "$runs" = xanadu ] && [ -n "${keys:-}" ] && ! "$binary" "--walk=$keys"; then
     say "   the staged route does not go where it says, so nothing was filmed"
     missed=$((missed + 1))
     continue
@@ -457,7 +457,7 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # had a frame to cost: load's readout came out as nought draws and nought
   # triangles at every second tried. Spec 0085 made a picture draw every
   # frame like a film does, which costs almost nothing, because what a film
-  # pays for is reading each frame back rather than drawing it: capriccio's
+  # pays for is reading each frame back rather than drawing it: xanadu's
   # 46 seconds went from 11.37 to 11.61.
   #
   # Drawn is now the better of the two for a second reason. menger and load
@@ -477,7 +477,7 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   # its arc and the wall is in pieces, which stays true however the swing
   # drifts.
   #
-  # capriccio's second is written beside its row in the table above, with
+  # xanadu's second is written beside its row in the table above, with
   # what it shows and why. It was written out here as well, with the whole
   # history of the number behind it, until 2026-11-14, when the two came
   # apart: the table said 28 and this said 25.5, and this is not the column
@@ -493,15 +493,15 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
     --picture-for "${poster:-1}" >/dev/null 2>&1
 
   # written down as it is filmed, so ./check-fresh can say how far behind this
-  # clip is without anybody having to remember. capriccio has a repo of its
+  # clip is without anybody having to remember. xanadu has a repo of its
   # own on top of the engine and the rest do not, which is the whole of why
   # this takes two commits rather than one.
   #
   # --from names the folder, which ./check-fresh resolves against the disc.
-  # While the clip was called arcade and the folder capriccio, stamping it
+  # While the clip was called arcade and the folder xanadu, stamping it
   # with the clip's name read arcade@unknown and called the clip unreadable.
-  if [ "$runs" = capriccio ]; then
-    ./stamp "$OUT/MADE" --from capriccio "$name.mp4" "$name.png"
+  if [ "$runs" = xanadu ]; then
+    ./stamp "$OUT/MADE" --from xanadu "$name.mp4" "$name.png"
   else
     ./stamp "$OUT/MADE" "$name.mp4" "$name.png"
   fi

@@ -52,14 +52,14 @@ case "$want" in
     # not engine code, but their tests have to keep running and a test under
     # examples/ never does. Named separately so its failures are named too.
     [ -f blitzkit/shapes/Cargo.toml ] && echo blitzkit/shapes
-    # capriccio is the building the games sit in rather than one of them, so
+    # xanadu is the building the games sit in rather than one of them, so
     # it is beside games/ and not under it. It is a crate and wants testing; it
     # is not a game and must not be asked for a bullet in the game lists.
     #
-    # The folder, the binary and what the site serves are all capriccio now.
+    # The folder, the binary and what the site serves are all xanadu now.
     # The room you land in is still an arcade, which is deliberate: the name
     # is the building's and the hall keeps its own sign.
-    [ -f capriccio/Cargo.toml ] && echo capriccio
+    [ -f xanadu/Cargo.toml ] && echo xanadu
     games | sed 's|^|games/|'
     ;;
   *)

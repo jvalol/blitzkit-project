@@ -125,7 +125,7 @@ for name in $(grep -oE 'https://github\.com/jvalol/[a-z0-9-]+' README.md |
   sed 's|.*/||' | sort -u); do
   case "$name" in
     blitzkit-project) continue ;;
-    blitzkit|capriccio) at=$name ;;
+    blitzkit|xanadu) at=$name ;;
     *) at=games/$name ;;
   esac
 
@@ -159,5 +159,5 @@ while read -r at; do
 done < <(./list-repos)
 
 echo "== the arcade"
-cd capriccio || exit 1
+cd xanadu || exit 1
 exec cargo run --release --quiet

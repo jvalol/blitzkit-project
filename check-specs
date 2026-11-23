@@ -50,7 +50,7 @@ cd "$(dirname "$0")" || exit 1
 # package's tests have to be listed to check a citation, and listing them
 # means building them, so the whole project is five minutes. A repo's own
 # `scripts/ship` cannot pay that for the other five repos it did not touch,
-# and until 2026-11-18 it paid nothing instead: capriccio shipped a3db293
+# and until 2026-11-18 it paid nothing instead: xanadu shipped a3db293
 # with two citations its own commit had just killed, because ship runs that
 # repo's gate and `check-all` is the only thing that ran this.
 #
@@ -135,7 +135,7 @@ for repo in "${repos[@]}"; do
   # carving writer and a picture writer behind that attribute, and they are
   # tests only because `#[test]` is how you run something by hand. Counting
   # them as criteria nobody wrote makes the number say less than it could.
-  # Jake's call, 2026-11-23, reading capriccio's 209.
+  # Jake's call, 2026-11-23, reading xanadu's 209.
   skipped_tests=$(
     cd "$repo" || exit
     for pkg in $packages; do
@@ -251,12 +251,12 @@ for repo in "${repos[@]}"; do
   # **And the test nobody wrote a criterion for.** Every loop above reads a
   # spec and asks whether the tests it names exist. Nothing asked the
   # reverse, so a criterion could be deleted outright and this stayed green:
-  # on 2026-11-23 an edit to capriccio's spec 0132 took seven bullets with
+  # on 2026-11-23 an edit to xanadu's spec 0132 took seven bullets with
   # it, two of them naming tests that still ran, and the check had nothing to
   # say because every citation that was left still resolved.
   #
   # **A ratchet and not a rule.** 330 of the project's tests are named by no
-  # spec, 189 of them in capriccio, so a check that demanded one would be
+  # spec, 189 of them in xanadu, so a check that demanded one would be
   # answered by somebody writing 330 lines of prose nobody wants to read.
   # What is held instead is today's number per repo: four of them are at
   # nought already and stay there, and the rest may only ever come down. A
@@ -271,7 +271,7 @@ for repo in "${repos[@]}"; do
   # poolhall and slider are, and three more are within two of it.
   most_uncited="
 blitzkit 24
-capriccio 189
+xanadu 189
 games/cascada 10
 games/lantern 16
 games/marble 11
@@ -303,7 +303,7 @@ games/tessera 15
   allowed=${allowed:-0}
 
   # **It says so and it does not fail.** Jake's call, 2026-11-23, told what
-  # the other way round would cost: at 209 in capriccio nearly every new test
+  # the other way round would cost: at 209 in xanadu nearly every new test
   # would hold the gate until somebody wrote it a criterion, and a gate that
   # stops you that often is a gate people learn to go round.
   #

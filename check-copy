@@ -8,7 +8,7 @@
 # looking.
 #
 # **Its own file because two things want it.** ./check-all ran this as a loop
-# of its own, and capriccio's ./scripts/ship wanted the same answer before a
+# of its own, and xanadu's ./scripts/ship wanted the same answer before a
 # commit, where check-all is far too slow to run. Written twice it would be
 # two lists of one thing, which is the fault this project has already named
 # under five other names. Written here it is one.
