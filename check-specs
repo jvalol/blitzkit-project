@@ -13,9 +13,21 @@
 # A template's placeholder names and a superseded spec's dead ones are both
 # meant to be there.
 #
-# A cited name counts as a test if it has a segment ending in "tests", which is
-# what separates `system::tests::escape_quits_from_the_menu` from the constants
-# and functions specs also mention in backticks.
+# A cited name counts as a test if it is in a module some test lives in, or if
+# it has a segment ending in "tests". Either, because the second was the whole
+# rule until 2026-11-23 and it only ever saw the usual module name: blitzkit
+# keeps the renderer's tests in `renderer::asked`, and twenty-two citations to
+# those sat outside every loop in here, one of them naming a test renamed away
+# eleven days earlier. The first rule is read off the code and the second is
+# kept so that a module whose every test was deleted does not fall out of the
+# check along with them.
+#
+# **And the citation that was never written.** Every loop here reads a spec and
+# asks whether the tests it names exist; nothing asked whether a test is named
+# by anything, so a criterion could be deleted outright and this stayed green.
+# 330 of the project's tests are named by nothing, so this says what has
+# moved since the count was last written down and fails on none of it. See
+# `most_uncited` for what that costs.
 #
 # Both `klein::tests::x` and `blitzkit_shapes::klein::tests::x` are accepted.
 # --list never prints the crate, but a spec in a repo holding more than one has
@@ -45,16 +57,37 @@ cd "$(dirname "$0")" || exit 1
 # Named as paths from here, the way `./list-repos` prints them.
 repos=()
 
-if [ "$#" -gt 0 ]; then
-  for named in "$@"; do
-    if [ ! -d "$named" ]; then
-      echo "  no $named here to check"
-      exit 1
-    fi
+# **`--strict`, which is the count's teeth on demand.** Without it the count
+# below says only what has moved since the mark was written and fails
+# nothing, so a run with something to say still comes back green. With it,
+# every test no spec names is named, moved or not, and the run fails.
+#
+# Quiet by default because the number is 350 and a gate that stops you that
+# often is a gate people learn to go round. Strict on the whole count and
+# not on the change, because a flag named strict that goes quiet on 209
+# tests nobody has written a criterion for is the surprising one, and the
+# mark alone gives no way to read the backlog, let alone work it down.
+strict=
+named_a_repo=
 
-    repos+=("$named")
-  done
-else
+for named in "$@"; do
+  case "$named" in
+  --strict)
+    strict=yes
+    continue
+    ;;
+  esac
+
+  if [ ! -d "$named" ]; then
+    echo "  no $named here to check"
+    exit 1
+  fi
+
+  repos+=("$named")
+  named_a_repo=yes
+done
+
+if [ -z "$named_a_repo" ]; then
   while read -r repo; do repos+=("$repo"); done < <(./list-repos)
 fi
 missing=0
@@ -64,18 +97,74 @@ for repo in "${repos[@]}"; do
   # examples draw. A crate with no specs directory has nothing to check.
   [ -d "$repo/specs" ] || continue
 
-  have=$(
+  # **The packages, and not every name in the metadata.** `--no-deps` asks
+  # cargo for the workspace's own packages, and then a sed over the whole
+  # document took every `"name"` in it, dependencies included: blitzkit came
+  # back as 39 packages, so this looped `cargo test -p ab_glyph`, `-p wgpu`
+  # and 36 others, built their test targets, and folded their tests and their
+  # doctests into the list below, where no spec here could ever mean one of
+  # them. Harmless while nothing read the list the other way round, and not
+  # harmless at all once something did.
+  #
+  # Not a speed fix: warm, the whole project runs in 25 seconds either way.
+  # What a cold cache costs has not been measured.
+  #
+  # A workspace package's metadata carries an `"id"` beginning `path+file`
+  # and a dependency's entry carries no id at all, so that is what tells them
+  # apart without a JSON parser.
+  packages=$(
     cd "$repo" || exit
-    for pkg in $(cargo metadata --no-deps --format-version 1 2>/dev/null |
-      tr '{' '\n' | sed -n 's/.*"name":"\([^"]*\)".*/\1/p' | sort -u); do
+    cargo metadata --no-deps --format-version 1 2>/dev/null |
+      tr '{' '\n' | grep '"id":"path+file' |
+      sed -n 's/.*"name":"\([^"]*\)".*/\1/p' | sort -u
+  )
+
+  listed=$(
+    cd "$repo" || exit
+    for pkg in $packages; do
       cargo test -p "$pkg" --quiet -- --list 2>/dev/null | sed 's/: test$//' |
         while read -r t; do
           [ -n "$t" ] || continue
-          echo "$t"
-          echo "${pkg//-/_}::$t"
+          printf '%s\t%s\n' "${pkg//-/_}" "$t"
         done
     done | sort -u
   )
+
+  # **The ones marked `#[ignore]`, which the count leaves out.** A test
+  # nobody runs by default is a tool: this building keeps a pose printer, a
+  # carving writer and a picture writer behind that attribute, and they are
+  # tests only because `#[test]` is how you run something by hand. Counting
+  # them as criteria nobody wrote makes the number say less than it could.
+  # Jake's call, 2026-11-23, reading capriccio's 209.
+  skipped_tests=$(
+    cd "$repo" || exit
+    for pkg in $packages; do
+      cargo test -p "$pkg" --quiet -- --list --ignored 2>/dev/null | sed 's/: test$//'
+    done | grep . | sort -u
+  )
+
+  # What a spec may cite: the bare name, and the same with its crate in
+  # front, which a repo holding more than one package has to say.
+  have=$(awk -F'\t' '{ print $2; print $1 "::" $2 }' <<<"$listed" | sort -u)
+
+  # And the repo's own tests, once each, for counting. A doctest is a page
+  # that compiles rather than an acceptance criterion, and an ignored test is
+  # a tool, so neither is one of the things a spec is expected to name.
+  mine=$(awk -F'\t' '{ print $2 }' <<<"$listed" | grep -v ' - .*(line [0-9]*)$' | sort -u |
+    while read -r t; do
+      grep -qxF "$t" <<<"$skipped_tests" || echo "$t"
+    done)
+
+  # The modules tests actually live in, which is how a citation is told from
+  # the constants and functions a spec also writes in backticks.
+  #
+  # **Derived and not guessed from the name.** This read a `tests` segment,
+  # which is the usual module name and not the only one: blitzkit keeps the
+  # renderer's behind `renderer::asked`, and twenty-two citations to those in
+  # the engine's own specs were outside every loop in this file. A test
+  # renamed away in there said nothing, which is the exact rot this script
+  # was written to stop.
+  holds_tests=$(sed 's/::[^:]*$//' <<<"$mine" | sort -u)
 
   if [ -z "$have" ]; then
     # a repo whose specs are all drafts has nothing to prove yet, and a new
@@ -135,6 +224,18 @@ for repo in "${repos[@]}"; do
     done
   fi
 
+  # Which backticked names in a spec are meant to be tests. A name whose
+  # module holds tests is one; so is a name written the old way, with a
+  # segment ending in `tests`, which keeps a module whose every test was
+  # deleted from quietly falling out of the check along with them.
+  cites() {
+    grep -ho '`[a-z_0-9:]*`' "$1" | tr -d '`' | grep '::' | sort -u |
+      while read -r name; do
+        case "$name" in *tests::*) echo "$name"; continue ;; esac
+        grep -qxF "${name%::*}" <<<"$holds_tests" && echo "$name"
+      done
+  }
+
   for spec in "$repo"/specs/*.md; do
     grep -qx '\*\*Status:\*\* implemented' "$spec" || continue
 
@@ -144,8 +245,125 @@ for repo in "${repos[@]}"; do
         echo "  $spec cites $name, which no test answers to"
         missing=$((missing + 1))
       fi
-    done < <(grep -ho '`[a-z_0-9:]*`' "$spec" | tr -d '`' | grep 'tests::' | sort -u)
+    done < <(cites "$spec")
   done
+
+  # **And the test nobody wrote a criterion for.** Every loop above reads a
+  # spec and asks whether the tests it names exist. Nothing asked the
+  # reverse, so a criterion could be deleted outright and this stayed green:
+  # on 2026-11-23 an edit to capriccio's spec 0132 took seven bullets with
+  # it, two of them naming tests that still ran, and the check had nothing to
+  # say because every citation that was left still resolved.
+  #
+  # **A ratchet and not a rule.** 330 of the project's tests are named by no
+  # spec, 189 of them in capriccio, so a check that demanded one would be
+  # answered by somebody writing 330 lines of prose nobody wants to read.
+  # What is held instead is today's number per repo: four of them are at
+  # nought already and stay there, and the rest may only ever come down. A
+  # deleted criterion puts a count up by one wherever it happens, which is
+  # the whole of what this is for.
+  #
+  # The cost is that a new test nobody cites fails the gate. That is the
+  # intended cost: this building writes the criterion first and the test
+  # after it, and the line to paste is printed rather than left to work out.
+  # Today's numbers, 2026-11-23, ignored tests left out of them. A repo
+  # missing from here is at nought and has to stay there: cairn, carom,
+  # poolhall and slider are, and three more are within two of it.
+  most_uncited="
+blitzkit 24
+capriccio 189
+games/cascada 10
+games/lantern 16
+games/marble 11
+games/monty 48
+games/pong 1
+games/securitysweep 13
+games/snake 1
+games/starry 2
+games/tessera 15
+"
+
+  cited_here=$(
+    for spec in "$repo"/specs/*.md; do cites "$spec"; done | sort -u
+  )
+  # A citation may carry its crate in front, so each one counts under that
+  # name and under the name with its first segment taken off.
+  cited_bare=$(sed -e p -e 's/^[a-z_0-9]*:://' <<<"$cited_here" | sort -u)
+
+  nameless=$(
+    while read -r t; do
+      [ -n "$t" ] || continue
+      grep -qxF "$t" <<<"$cited_bare" || echo "$t"
+    done <<<"$mine"
+  )
+
+  count=$(grep -c . <<<"$nameless")
+  [ -n "$nameless" ] || count=0
+  allowed=$(awk -v r="$repo" '$1 == r { print $2 }' <<<"$most_uncited")
+  allowed=${allowed:-0}
+
+  # **It says so and it does not fail.** Jake's call, 2026-11-23, told what
+  # the other way round would cost: at 209 in capriccio nearly every new test
+  # would hold the gate until somebody wrote it a criterion, and a gate that
+  # stops you that often is a gate people learn to go round.
+  #
+  # What it buys is quiet. What it costs is teeth: the deletion this was
+  # built for would print these two lines in a run that still came back
+  # green, which is how it got through the first time.
+  #
+  # Only when the number has moved, so a run with nothing to say says
+  # nothing, and the table stays the thing the movement is measured from.
+  if [ -n "$strict" ]; then
+    # **Strict speaks about the count and not about the change.** A flag
+    # named strict that goes quiet on 209 tests nobody has written a
+    # criterion for is the surprising one, and the mark below says only what
+    # has moved, so without this there is no way to read the backlog at all,
+    # let alone work it down. Jake's call, 2026-11-23.
+    #
+    # The exit code only bites when you asked for it by typing the flag.
+    if [ "$count" -gt 0 ]; then
+      tests=tests
+      [ "$count" -eq 1 ] && tests=test
+
+      echo "  $repo has $count $tests no spec names"
+      [ "$count" -ne "$allowed" ] && echo "  the mark says $allowed"
+
+      while read -r t; do
+        [ -n "$t" ] && echo "      $t"
+      done <<<"$nameless"
+
+      echo "  name them in a criterion, or move the mark:  $repo $count"
+      missing=$((missing + 1))
+    fi
+  elif [ "$count" -ne "$allowed" ]; then
+    tests=tests
+    [ "$count" -eq 1 ] && tests=test
+
+    if [ "$count" -gt "$allowed" ]; then
+      echo "  $repo has $count $tests no spec names, where it had $allowed"
+
+      # **The names only while there are few of them.** The mark is a count
+      # and not a list, so this cannot say which one moved: it can only say
+      # that one did. Printing all of them to make that point buried the
+      # test that had just lost its criterion under 209 that never had one.
+      #
+      # Where a repo is at or near nought, which is four of them and three
+      # more within two, the list is the answer and is short enough to read.
+      # Everywhere else it is what `--strict` is for.
+      if [ "$count" -le 12 ]; then
+        while read -r t; do
+          [ -n "$t" ] && echo "      $t"
+        done <<<"$nameless"
+      else
+        echo "      too many to list, so this says only that one moved"
+        echo "      ./check-specs --strict $repo names them"
+      fi
+    else
+      echo "  $repo is down to $count $tests no spec names, from $allowed"
+    fi
+
+    echo "  neither fails this; to move the mark, say here:  $repo $count"
+  fi
 
   # **And the other direction, which nothing was looking in at all.** Every
   # loop above reads a spec and asks whether the tests it names exist. Nothing
@@ -261,7 +479,7 @@ for repo in "${repos[@]}"; do
       [ -n "$name" ] || continue
       cited=$((cited + 1))
       grep -qxF "$name" <<<"$have" && answered=$((answered + 1))
-    done < <(grep -ho '`[a-z_0-9:]*`' "$spec" | tr -d '`' | grep 'tests::' | sort -u)
+    done < <(cites "$spec")
 
     if [ "$cited" -gt 0 ] && [ "$cited" -eq "$answered" ]; then
       echo "  $spec is not marked implemented and every one of its $cited tests exists"
