@@ -253,6 +253,22 @@ say "== building the examples"
 (cd blitzkit && cargo build --release --bin clips-apart --quiet)
 (cd xanadu && cargo build --release --quiet)
 
+# **And every game, because the arcade's clip is a film of them.**
+#
+# A cabinet reads its game's binary off the disk beside the arcade's own and
+# says "Out of order" when it is not there, so a clip filmed before the games
+# are built is a walk through thirteen dead machines. On 2026-11-24 the shared
+# target directory was emptied an hour before this ran and that is the film
+# that came out, 1,022 frames of 1,802 changed and blamed on something else
+# until the still was looked at.
+#
+# Unconditional, rather than only when xanadu is among the wanted: a build of
+# something already built prints nothing and costs nothing, and the condition
+# would be a second account of which clip needs what.
+while read -r repo; do
+  case $repo in games/*) (cd "$repo" && cargo build --release --quiet) || true ;; esac
+done < <(./list-repos)
+
 # Where cargo put them, asked rather than assumed. The repos here share one
 # target directory at the project root, so blitzkit/target does not exist and
 # looking for the binaries there finds nothing.

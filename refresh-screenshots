@@ -136,6 +136,27 @@ if [ ${#wanted[@]} -eq 0 ]; then
   exit 0
 fi
 
+# **Everything is built before anything is photographed.**
+#
+# The arcade's own shot is a hall of cabinets, and what each cabinet says is
+# read off the disk at startup: `Cabinet::found` looks for a game's binary
+# beside the arcade's own and the screen reads "Out of order" when it is not
+# there. Built inside the loop below, with xanadu first in the list, the
+# arcade was photographed before a single game existed.
+#
+# It never showed, because the binaries are normally left over from whatever
+# anybody was doing that week. On 2026-11-24 the shared target directory was
+# emptied an hour before this ran and the published picture of the arcade
+# came back as thirteen dead machines in a room lit by their dark screens.
+#
+# So the builds happen here, in the order they are wanted, and the loop below
+# only takes pictures. A second build of something already built is a cargo
+# call that prints nothing and costs nothing, which is the price of this.
+for repo in "${wanted[@]}"; do
+  runnable "$repo" || continue
+  (cd "$repo" && cargo build --release --quiet) || true
+done
+
 shot=0
 same=0
 for repo in "${wanted[@]}"; do
@@ -152,7 +173,6 @@ for repo in "${wanted[@]}"; do
   fi
 
   say "== $name"
-  (cd "$repo" && cargo build --release --quiet)
 
   # What this one can photograph, asked of the game rather than assumed. A
   # repo that answers --screenshots names a shot and the file it belongs in,
