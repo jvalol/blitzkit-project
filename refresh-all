@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# Remakes everything this project publishes that is built from the code.
+#
+# **Because it is three scripts and nobody holds three in their head.**
+# ./refresh-examples does the engine's clips and stills, ./refresh-screenshots
+# does each game's own staged shot, ./build-web does the eighteen browser
+# builds, and ./check-fresh reports all three together while naming a
+# different owner for each. Asked for the media on 2026-11-17, this ran the
+# first and had to be asked again for the second; asked for all of it on
+# 2026-11-24, somebody ran the three by hand across three turns and Jake
+# called it thrashing. Each time the grouping existed in a message and
+# nowhere anybody could run.
+#
+# Named for ./check-all, the other one that takes no names and does the lot.
+# It was ./refresh-media while it was only pictures.
+#
+# **The screenshots go last, and that is a rule rather than an order
+# somebody liked.** ./stamp marks a source repo whose tree was dirty with a
+# +, and for that column it asks `git diff` with no pathspec at all
+# (stamp:115), where the engine's own column is asked with one (stamp:133)
+# and so ignores media entirely. ./refresh-screenshots writes into xanadu
+# and all thirteen games, and the other two stamp --from those same repos:
+# the arcade's clip, the arcade's wasm, and poolhall's, slider's, snake's
+# and starry's. Run it first and every one of those records a tree that was
+# dirty with nothing but this script's own output.
+#
+# **One after the other, and never at once.** The two that photograph drive
+# the GPU, open a window, and find a window by name. Two at a time is how a
+# game gets photographed holding another game's frame, which is the first
+# trap the screenshot skill writes down. All three share one cargo lock, so
+# running them together would serialise anyway and buy nothing.
+#
+# **All three are attempted even when one fails.** They remake different
+# things and none needs another to have worked. What a failure changes is
+# what this says at the end and what it exits with, not how much it did.
+#
+# It takes no names. The three underneath all do, and they mean different
+# things by them: an example to ./refresh-examples, a repo to
+# ./refresh-screenshots, a game to ./build-web. One flag that meant any of
+# them would be a flag that means none, so a single thing is asked of the
+# script that owns it.
+#
+# Usage: ./refresh-all
+set -uo pipefail
+cd "$(dirname "$0")" || exit 1
+
+if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+  # the comment under the shebang, however long it becomes. ./push says why
+  # a line number here is a number nothing is keeping.
+  sed -n '2,$ { /^#/!q; s/^# \{0,1\}//; p; }' "$0"
+  exit 0
+fi
+
+if [ "$#" -gt 0 ]; then
+  echo "./refresh-all takes no names. For one of them:"
+  echo "  ./refresh-examples <example>..."
+  echo "  ./refresh-screenshots <repo>..."
+  echo "  ./build-web <game>"
+  exit 1
+fi
+
+# **How many rustc at once**, which is ./check-all's number and its reason:
+# one per core is eighteen on this machine, and eighteen linking at once has
+# filled its memory before. Overridable, because the number is the machine's.
+export CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS:-4}
+
+failed=()
+
+echo "== the engine's clips and stills"
+if ! ./refresh-examples; then
+  failed+=("refresh-examples")
+fi
+
+echo
+echo "== the examples built for a browser"
+if ! ./build-web; then
+  failed+=("build-web")
+fi
+
+# last, per the note above: this is the one that dirties the repos the other
+# two stamp themselves against.
+echo
+echo "== each game's own staged shot"
+if ! ./refresh-screenshots; then
+  failed+=("refresh-screenshots")
+fi
+
+echo
+if [ "${#failed[@]}" -gt 0 ]; then
+  echo "failed: ${failed[*]}"
+  echo "What the others remade is still remade. ./check-fresh says what is"
+  echo "still behind."
+  exit 1
+fi
+
+echo "everything derived is remade. It is derived, so it wants a commit of"
+echo "its own, after whatever changed the thing it shows."

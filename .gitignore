@@ -37,7 +37,7 @@
 /ray-spike/target
 !/contact-sheet
 !/refresh-screenshots
-!/refresh-media
+!/refresh-all
 !/refresh-examples
 !/build-web
 !/stamp
