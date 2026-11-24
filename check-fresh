@@ -134,8 +134,23 @@ behind_source() {
   # here compiles a .md or a spec, which was checked rather than assumed,
   # and data/ still counts because the arcade's globe is an include_str! of
   # one.
+  #
+  # **media goes too, and it is the one exclusion here that is not prose.**
+  # A commit that retakes a screenshot read as a source change, so taking
+  # two of the arcade's own pictures on 2026-11-24 marked its clip and its
+  # browser build stale. Clearing that would have refilmed forty-six
+  # seconds to move a stamp and change no bytes, which is the same waste
+  # the paragraph above was written about.
+  #
+  # It is safe for a narrower reason than the others and not for being
+  # harmless: build.rs:66 in the arcade compiles every game's
+  # media/screenshot.png into its wasm, and main.rs:937 records that this
+  # dependency stopped a release on 2026-11-03. What makes it safe is that
+  # no stamp names a game as an input to the arcade, so a game's screenshot
+  # was never counted against the arcade's build here anyway. The day a
+  # stamp lists them, take this back out.
   git -C "$where" rev-list --count "$was"..HEAD \
-    -- . ':(exclude)specs' ':(exclude)*.md' 2>/dev/null || echo "?"
+    -- . ':(exclude)specs' ':(exclude)*.md' ':(exclude)media' 2>/dev/null || echo "?"
 }
 
 # **And it says who makes the thing it is reporting on.** This printed one
