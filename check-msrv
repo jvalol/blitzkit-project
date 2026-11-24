@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# The declared MSRV is true, and everything that states it agrees.
+#
+# `rust-version` is a promise to whoever installs the crate, and it is the one
+# claim in a Cargo.toml that nothing on a developer's machine has any reason to
+# exercise. You build on what you have. On 2026-11-24 every crate here said
+# 1.87, had said it since the wgpu 30 port, and `cargo +1.87 check` did not
+# reach a compile: `image` wanted 1.88 and `ordered-float` wanted 1.90, the
+# second of them arriving through `wgpu-hal`, so wgpu was asking for more than
+# the 1.87 it declares. Nothing here had used a newer feature. The number went
+# stale underneath, and rustup held stable and 1.98.1 and nothing that could
+# have noticed.
+#
+# **So the compile is the check and the agreement is the cheap half.** Reading
+# the files against each other would have passed that morning, because all
+# fifteen of them were wrong in the same way. It is kept because the opposite
+# fault is the one this project makes most: a number written in seven places
+# and corrected in six.
+#
+# **A missing toolchain fails rather than skips.** Skipping is precisely the
+# hole: a check that quietly does nothing on the machine that lacks the thing
+# it needs is how a false claim survives three months. One install and it is
+# there for as long as the number is.
+#
+# **One crate here is exempt and it is the honest kind.** blitzkit/farewell is
+# the `blitkit` signpost, nine lines and no dependencies at all, so it inherits
+# no floor from anything and its 1.87 is its own true claim. Raising it to
+# match would be a false statement pointing the other way. Nothing else here
+# is free standing; everything else reaches wgpu, which is where the floor
+# comes from.
+#
+# What it does not catch: a game using a feature newer than its own declared
+# version is caught, and a game whose published blitzkit disagrees with the
+# checkout's is not, because `[patch.crates-io]` points every build in this
+# folder at the checkout. That is a different check and wants a clone.
+set -uo pipefail
+cd "$(dirname "$0")"
+
+engine=blitzkit/Cargo.toml
+want=$(sed -n 's/^rust-version = "\(.*\)"$/\1/p' "$engine")
+
+if [ -z "$want" ]; then
+  echo "$engine declares no rust-version, so there is no number to hold to." >&2
+  exit 1
+fi
+
+echo "the engine says $want."
+
+# Every checkout under here, each asked once. ./list-repos names crates and two
+# of them share one: blitzkit/shapes lives inside blitzkit, and `git ls-files`
+# from either hands back the same list.
+roots=()
+for crate in . $(./list-repos); do
+  root=$(git -C "$crate" rev-parse --show-toplevel 2> /dev/null) || continue
+  known=
+  for seen in ${roots[@]+"${roots[@]}"}; do [ "$seen" = "$root" ] && known=yes; done
+  [ -n "$known" ] || roots+=("$root")
+done
+
+# Read off what is tracked rather than off a walk. The tree here holds a target
+# directory that has been 172 GB, and check-voice has already paid for finding
+# that out the other way.
+wrong=0
+for root in "${roots[@]}"; do
+  while IFS= read -r file; do
+    # See the note above: a crate that depends on nothing inherits no floor.
+    case "$file" in farewell/* | */farewell/*) continue ;; esac
+
+    case "$file" in
+      *Cargo.toml)
+        said=$(sed -n 's/^rust-version = "\(.*\)"$/\1/p' "$root/$file")
+        [ -z "$said" ] && continue
+        [ "$said" = "$want" ] && continue
+        echo "  $root/$file declares $said"
+        wrong=$((wrong + 1))
+        ;;
+      *.md)
+        # The two shapes a statement of it takes here: the sentence a reader
+        # gets, and the manifest line a skill tells the next game to write.
+        while IFS= read -r said; do
+          [ "$said" = "$want" ] && continue
+          echo "  $root/$file says $said"
+          wrong=$((wrong + 1))
+        done < <(sed -n \
+          -e 's/.*Rust \([0-9][0-9.]*\) or newer.*/\1/p' \
+          -e 's/.*rust-version = "\([0-9][0-9.]*\)".*/\1/p' "$root/$file")
+        ;;
+    esac
+  done < <(git -C "$root" ls-files -- '*Cargo.toml' '*.md')
+done
+
+if ! rustup toolchain list 2> /dev/null | grep -q "^$want"; then
+  echo
+  echo "no $want toolchain here, so the number cannot be checked. That is the" >&2
+  echo "state the claim went stale in, so this is a failure and not a skip:" >&2
+  echo >&2
+  echo "  rustup toolchain install $want --profile minimal" >&2
+  exit 1
+fi
+
+# Its own directory, because a second rustc invalidates everything the first
+# one built and the shared one is 170 GB of warm. Under target/ so one clean
+# takes both.
+export CARGO_TARGET_DIR=$PWD/target/msrv
+
+echo "compiling every crate with $want."
+broke=0
+for crate in $(./list-repos); do
+  (cd "$crate" && cargo "+$want" check --all-targets -q) || {
+    echo "  $crate does not build on $want"
+    broke=$((broke + 1))
+  }
+done
+
+none=0
+for crate in $(./list-repos); do
+  grep -q '^rust-version' "$crate/Cargo.toml" || none=$((none + 1))
+done
+
+echo
+if [ "$wrong" -eq 0 ] && [ "$broke" -eq 0 ]; then
+  echo "every crate and every sentence says $want, and every crate builds on it"
+  [ "$none" -gt 0 ] && echo "($none crate(s) declare nothing, so nothing of theirs was checked)"
+  exit 0
+fi
+
+[ "$wrong" -gt 0 ] && echo "$wrong place(s) disagree with the engine"
+[ "$broke" -gt 0 ] && echo "$broke crate(s) do not build on the version they claim"
+exit 1

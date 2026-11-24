@@ -141,6 +141,23 @@ if ! ./check-specs; then
   failed+=("specs cite missing tests")
 fi
 
+# The same shape one step further out: `rust-version` is a claim about a
+# toolchain nobody here is running, so nothing exercises it either. Every
+# crate said 1.87 from the wgpu 30 port until 2026-11-24, and `cargo +1.87
+# check` never reached a compile: `image` wanted 1.88 and `ordered-float`,
+# arriving through `wgpu-hal`, wanted 1.90. No feature newer than 1.87 had
+# been used by anyone. The number went stale under the dependencies, with no
+# toolchain installed that could have said so.
+#
+# **This makes the gate need a second toolchain**, which is the price of the
+# claim being checkable at all. check-msrv fails rather than skips when it is
+# missing, and prints the rustup line, because skipping is the state the false
+# number lived in for three months.
+echo "== msrv"
+if ! ./check-msrv; then
+  failed+=("the declared msrv is not true, or not said the same way twice")
+fi
+
 # Every example and every game is written about in three places, and adding one
 # means remembering all three. Nothing in a cargo run reads prose, so a new
 # example was listed nowhere and everything still passed.

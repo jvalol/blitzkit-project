@@ -19,6 +19,7 @@
 !/check-copy
 !/check-listings
 !/check-specs
+!/check-msrv
 !/check-tunnel
 !/check-film
 !/same-picture
