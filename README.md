@@ -57,7 +57,7 @@ are shallow, so it is about a hundred megabytes rather than seven hundred, and
 names the packages the machine needs and leaves those to you, since they want
 sudo.
 
-To build on the engine instead, `cargo add blitzkit`. Rust 1.87 or newer.
+To build on the engine instead, `cargo add blitzkit`. Rust 1.90 or newer.
 
 `./check-all` tests and lints every crate in dependency order, then runs
 `./check-tunnel`.

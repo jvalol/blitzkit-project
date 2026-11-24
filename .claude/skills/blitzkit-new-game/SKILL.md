@@ -29,7 +29,7 @@ so a new game gets a cabinet the moment its folder exists, and
 Copy the shape of the newest sibling rather than inventing one. cascada is the
 most recent.
 
-- `Cargo.toml`. `edition = "2018"`, `rust-version = "1.87"` (the engine's MSRV),
+- `Cargo.toml`. `edition = "2018"`, `rust-version = "1.90"` (the engine's MSRV),
   `license = "MIT OR Apache-2.0"`, and `blitzkit` at the current minor version.
   The published crate, not a path: the `[patch.crates-io]` in
   `blitzkit-project/.cargo/config.toml` is what redirects it to the checkout, and

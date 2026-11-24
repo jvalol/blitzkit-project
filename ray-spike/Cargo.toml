@@ -2,7 +2,7 @@
 name = "ray-spike"
 version = "0.0.0"
 edition = "2018"
-rust-version = "1.87"
+rust-version = "1.90"
 
 [dependencies]
 wgpu = "30"
