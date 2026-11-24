@@ -24,6 +24,11 @@
 !/check-film
 !/same-picture
 
+# Finds which checkout here is holding a push up, then hands each blocked
+# one to ~/.claude/voice/sign-copy. Here rather than beside sign-copy because
+# the loop is only useful where a project is several repos.
+!/sign-all
+
 # Spec 0096's spike: does a ray query work at all on this stack. Its own
 # crate rather than a script, so its build output is denied again below.
 # ./list-repos does not find it, which means ./check-all never builds it and

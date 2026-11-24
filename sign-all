@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# sign-all — hand every repo here to sign-copy, one at a time.
+#
+# `sign-copy --all` already signs a whole repo, showing the word diff since
+# the version signed and asking per file. What it cannot do is tell you which
+# of the checkouts here is the one holding you up, and a push is refused by
+# whichever repo it is. Finding that out by hand is the friction; the reading
+# is the point and stays.
+#
+# **One repo per sign-copy run, which is its rule and not a workaround.** Two
+# would want two manifests and two HEADs for the diff. So this loops rather
+# than batching, and every question sign-copy would ask still gets asked.
+#
+# Deduplicated by git root, because ./list-repos names crates and two of them
+# share a checkout: blitzkit/shapes lives inside blitzkit, and without this
+# the same two site pages come up twice.
+set -uo pipefail
+cd "$(dirname "$0")"
+
+sign=$HOME/.claude/voice/sign-copy
+seen=()
+blocked=()
+
+for crate in . $(./list-repos); do
+  root=$(git -C "$crate" rev-parse --show-toplevel 2> /dev/null) || continue
+
+  known=
+  for one in ${seen[@]+"${seen[@]}"}; do [ "$one" = "$root" ] && known=yes; done
+  [ -n "$known" ] && continue
+  seen+=("$root")
+
+  (cd "$root" && "$HOME/.claude/voice/check-voice" > /dev/null 2>&1) && continue
+  blocked+=("$root")
+done
+
+if [ "${#blocked[@]}" -eq 0 ]; then
+  echo "sign-all: nothing unsigned in any repo here."
+  exit 0
+fi
+
+echo "sign-all: ${#blocked[@]} repo(s) with copy to read."
+echo
+
+left=0
+for root in "${blocked[@]}"; do
+  echo "=== $root"
+  (cd "$root" && "$sign" --all) || left=$((left + 1))
+  echo
+done
+
+[ "$left" -gt 0 ] && { echo "sign-all: $left repo(s) still have unsigned copy."; exit 1; }
+echo "sign-all: every repo here is signed."
