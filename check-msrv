@@ -29,6 +29,16 @@
 # is free standing; everything else reaches wgpu, which is where the floor
 # comes from.
 #
+# **Raising the number turns clippy lints on, which nobody warns you about.**
+# Several lints are msrv gated: they suggest an API and stay quiet while the
+# crate claims a version older than the one that stabilised it. Going to 1.90
+# woke `chunks_exact_to_as_chunks`, because `as_chunks` landed after 1.87, and
+# twenty-four call sites across blitzkit and xanadu went from silent to
+# refused. Same code, same clippy 0.1.98: 1.87 gave nothing and 1.90 gave ten
+# in the engine alone. Nothing was wrong with any of them a moment earlier.
+# So expect a raise to cost a clippy sweep, and expect the suggestions to be
+# machine applicable, which is what `cargo clippy --fix` is for.
+#
 # What it does not catch: a game using a feature newer than its own declared
 # version is caught, and a game whose published blitzkit disagrees with the
 # checkout's is not, because `[patch.crates-io]` points every build in this
