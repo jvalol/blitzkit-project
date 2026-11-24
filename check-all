@@ -249,7 +249,7 @@ with os.scandir(d) as it:
 print(n)' "$deps" 100000)
   if [ "$piled" -gt 100000 ]; then
     echo "   over 100,000 files in $deps, which is what slows every cargo call"
-    echo "   and every test binary in the tree. cargo clean empties it. Spec 0062."
+    echo "   and every test binary in the tree. cargo clean empties it. Spec 0115."
   else
     echo "   $piled files in $deps"
   fi
