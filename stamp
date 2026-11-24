@@ -91,10 +91,35 @@ set -euo pipefail
 # marked all thirty-six browser builds stale, and rebuilding every one of
 # them would have produced what was already there. It cost a --no-verify
 # push instead, which is the gate being stepped over rather than answered.
+#
+# **And shapes, which is a second package in this repo rather than a second
+# repo.** The teapot, the Klein bottle and the trefoil are drawn by examples
+# that take blitzkit-shapes as a dev-dependency, so a shape changing changes
+# what those browser builds and those clips show. This list said `src` and
+# meant the engine's, and nothing was watching the other package: on
+# 2026-11-24 a change there went out with ./check-fresh reporting everything
+# level, which is the same miss the shaders had before res was named.
+#
+# Counted rather than argued, and the count does not flatter it. Eight
+# commits of 668 have touched shapes/src, and seven of them added an example
+# in the same breath, so `examples` had already caught every one. The eighth
+# is the 2026-11-24 one above, which changed a test and nothing a build can
+# see. On the record so far this line would have caught nothing and marked
+# one thing stale that was not.
+#
+# It is here for the case the record does not hold yet: changing the shape of
+# a thing that already has its example, where nothing else moves. A teapot
+# with different numbers in it is a different teapot in three clips and three
+# browser builds, and the eight commits say only that nobody has done it,
+# not that nobody will.
+#
+# Its tests come with it, since a pathspec cannot see a cfg(test), and that
+# is where the one false stale comes from.
 inputs() {
   echo src
   echo res
   echo examples
+  echo shapes/src
   echo ':(exclude)src/bin'
 }
 
