@@ -465,6 +465,12 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
   fi
   rm -f "$frames"
 
+  # Cleared because `same_clip` sets it and the test below can skip it: an
+  # example with no committed clip yet takes the else branch with the
+  # previous example's numbers still in the variable, and says they are
+  # this clip's.
+  APART_SAID=
+
   # and kept only if it is a different clip, per spec 0084.
   if [ -f "$OUT/$name.mp4" ] && same_clip "$OUT/$name.mp4" "$LOGS/$name.mp4" "$wide" "$tall"; then
     say "   $OUT/$name.mp4 is the clip it already was"
