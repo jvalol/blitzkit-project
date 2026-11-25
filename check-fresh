@@ -98,9 +98,23 @@ behind_engine() {
 #
 # ./list-repos is where that rule already lives, for the reason its own header
 # gives, so `shots` is asked for here rather than spelled out.
+#
+# **And now it is not asked here at all.** Spec 0135 put a second baked
+# thing in this manifest, a grid of the arcade's rooms, and this function
+# knew one answer: a hash of the games' screenshots, compared against
+# every row that carries anything. The rooms grid read as stale on the
+# run that made it and would have for ever. What a thing is made of is
+# the row's own business, so ./stamp writes the files down and this
+# hashes whatever the row names. The field is `<hash>:<paths>`: what it
+# was when it was made, and what to hash to ask again.
+#
+# A row written before this reads as one hash and no paths, so there is
+# nothing to hash and it answers empty, which is not the hash and is
+# therefore stale. That is the right answer for a row nobody can check,
+# and one refresh clears it.
 baked_now() {
-  # shellcheck disable=SC2046
-  cat $(./list-repos shots) 2>/dev/null | shasum -a 256 | cut -c1-8
+  # shellcheck disable=SC2086
+  cat ${1#*:} 2>/dev/null | shasum -a 256 | cut -c1-8
 }
 
 behind_source() {
@@ -215,7 +229,7 @@ look() {
     # rather than a count, because the question is whether the bytes that
     # went in are still the bytes on disk.
     local carried=0
-    if [ "$bakes" != - ] && [ "$bakes" != "$(baked_now)" ]; then
+    if [ "$bakes" != - ] && [ "${bakes%%:*}" != "$(baked_now "$bakes")" ]; then
       carried=1
     fi
 

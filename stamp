@@ -143,11 +143,22 @@ if [ "${1:-}" = --from ]; then
   from="$(basename "$repo")@$at"
 fi
 
+# **The hash and the files it is of**, which was the hash alone until spec
+# 0135 gave this manifest a second baked thing. A hash says nothing about
+# what was hashed, so whoever checks it has to know, and ./check-fresh
+# knew one answer: the games' screenshots. A grid made of eleven room
+# tiles was therefore compared against the hash of thirteen screenshots
+# and read as stale on the run that made it.
+#
+# `<hash>:<paths>`, space separated, inside the one tab-separated field,
+# so the row says what it is made of and anybody can hash the same files
+# again. A reader can also see what went into a thing without running
+# anything, which the hash alone never allowed.
 bakes=-
 if [ "${1:-}" = --bakes ]; then
+  of=$(printf '%s' "$2" | tr -s ' \n' ' ' | sed 's/^ //;s/ $//')
   # shellcheck disable=SC2086
-  bakes=$(cat $2 2>/dev/null | shasum -a 256 | cut -c1-8)
-  [ -z "$bakes" ] && bakes=unknown
+  bakes="$(cat $of 2>/dev/null | shasum -a 256 | cut -c1-8):$of"
   shift 2
 fi
 
