@@ -52,7 +52,9 @@
 # What is worth keeping is how the count was read. Those 49 frames were put
 # down to a gate that had just changed what the arcade draws outdoors,
 # written into a commit message as though measured, and they were the clock.
-# A frame count off this script is a question, not a finding.
+# A frame count off this script is a question, not a finding. Every run
+# says how close it came now, keep or not, so a clean one leaves a number
+# behind instead of only the failures doing it.
 #
 # The keys are a file the engine plays rather than events posted at the
 # screen: the table below is compiled into the log format of spec 0080, which
@@ -473,7 +475,7 @@ while IFS=$'\t' read -r name settle seconds poster keys; do
 
   # and kept only if it is a different clip, per spec 0084.
   if [ -f "$OUT/$name.mp4" ] && same_clip "$OUT/$name.mp4" "$LOGS/$name.mp4" "$wide" "$tall"; then
-    say "   $OUT/$name.mp4 is the clip it already was"
+    say "   $OUT/$name.mp4 is the clip it already was: $APART_SAID"
     rm -f "$LOGS/$name.mp4"
     kept=$((kept + 1))
   else
