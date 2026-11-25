@@ -116,6 +116,27 @@ runnable() {
 }
 
 # Which repos can stage a shot. The disk is the list, as it is for check-all.
+# And which of its pictures are rooms, for the grid below. Asked the same
+# way and for the same reason: a game that opens a window instead of
+# answering is still alive after two seconds and gets closed from here.
+ask_rooms() {
+  local name=$1 said q waited
+  said=$(mktemp)
+
+  "./target/release/$name" --rooms >"$said" 2>/dev/null &
+  q=$!
+
+  waited=0
+  while kill -0 "$q" 2>/dev/null && [ "$waited" -lt $((ASKED * 10)) ]; do
+    sleep 0.1
+    waited=$((waited + 1))
+  done
+
+  stop "$q"
+  cat "$said"
+  rm -f "$said"
+}
+
 staged() {
   while read -r repo; do
     [ -d "$repo/src" ] || continue
@@ -125,6 +146,10 @@ staged() {
     fi
   done < <(./list-repos all)
 }
+
+# Every picture a repo calls a room, filled in as each is photographed and
+# laid out as one grid at the end.
+rooms=()
 
 wanted=("$@")
 if [ ${#wanted[@]} -eq 0 ]; then
@@ -186,6 +211,14 @@ for repo in "${wanted[@]}"; do
   shots=$(ask_shots "$name")
   [ -n "$shots" ] || shots=media/screenshot.png
 
+  # **And which of them are rooms, asked of the repo rather than worked
+  # out here.** Spec 0135. A repo that answers nothing has no rooms and
+  # wants no grid of them, which is every game: this is one question with
+  # one answer today and the shell is none the wiser about whose.
+  while read -r one; do
+    [ -n "$one" ] && rooms+=("$repo/$one")
+  done < <(ask_rooms "$name")
+
   # Split on the tab by hand, with IFS emptied. Read with the tab as its
   # separator, a shell strips leading whitespace off the line, so a line whose
   # first field is empty loses it and every field shifts up one: the staged
@@ -206,6 +239,13 @@ for repo in "${wanted[@]}"; do
         file=$line
         ;;
     esac
+
+    # **And somewhere to put it.** A repo may name a picture a folder
+    # down, which spec 0135's room tiles do: they are not published one
+    # at a time and sit under media/rooms so ./check-listings does not
+    # ask the site to show each of them. The engine writes the file and
+    # not the path to it.
+    mkdir -p "$(dirname "$repo/$file")"
 
     # What is there now, so this can say afterwards whether it moved. The
     # engine leaves a file alone that already holds the picture, per spec
@@ -274,6 +314,23 @@ else
   # check-fresh asks it, so the two cannot disagree about whether this is
   # stale.
   ./stamp blitzkit/media/MADE --bakes "$(./list-repos shots | tr '\n' ' ')" games.png
+fi
+
+# **And the rooms, which are one game's and not one per game.** Spec 0135:
+# the arcade is a building and what the other grid does for thirteen games
+# this does for twelve of its rooms. It goes in the engine's media beside
+# the other two for the reason given above: that is the folder the site
+# serves.
+say "== the rooms"
+if [ ${#rooms[@]} -eq 0 ]; then
+  say "   no rooms to lay out"
+elif ! ./contact-sheet blitzkit/media/rooms.png "${rooms[@]}"; then
+  say "   the grid could not be laid out"
+else
+  # The same `--bakes` argument the games' grid needs, and for the same
+  # reason: every tile of this is made in another repo, so a room that
+  # takes a new picture has to make this stale.
+  ./stamp blitzkit/media/MADE --bakes "${rooms[*]}" rooms.png
 fi
 
 say ""
