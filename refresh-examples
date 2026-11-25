@@ -41,17 +41,18 @@
 # and xanadu's 46 seconds did, so it is not length and not scene size. See
 # spec 0084.
 #
-# **xanadu stopped matching some time after that.** Three runs on 2026-11-24,
-# same commit, same built games, nothing touched between them: 49 frames of
-# 1,802 differ every time, worst 0.01249, 0.01233 and 0.01241. The same
-# count each run rather than a scatter, which says a particular stretch of
-# the walk is unsteady rather than the whole film being noisy. What changed
-# between the two dates is not known and nothing here has looked.
+# **xanadu stopped matching, and it was its clock.** Three runs on 2026-11-24
+# differed every time, 49 frames of 1,802, worst 0.01249. The cellar's mantel
+# clock draws its hands at the real time of day, so two films started minutes
+# apart are two photographs of a clock. Nothing was unstable. Fixed the same
+# evening in xanadu's `193886c`, which pins the hour whenever a run is
+# filming or staging a shot, and three runs on 2026-11-25 each came back
+# the clip they already were. Spec 0084 has the hunt.
 #
-# It matters because the count is read as news. On 2026-11-24 those 49
-# frames were put down to a gate that had just changed what the arcade draws
-# outdoors, written into a commit message as though measured, and they were
-# this. A clip of xanadu coming back different is the floor, not a signal.
+# What is worth keeping is how the count was read. Those 49 frames were put
+# down to a gate that had just changed what the arcade draws outdoors,
+# written into a commit message as though measured, and they were the clock.
+# A frame count off this script is a question, not a finding.
 #
 # The keys are a file the engine plays rather than events posted at the
 # screen: the table below is compiled into the log format of spec 0080, which
