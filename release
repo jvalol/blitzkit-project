@@ -108,6 +108,26 @@ for repo in "${repos[@]}"; do
 done
 echo "committed in each game, pushed nowhere yet"
 
+# **And the engine's own media, which that loop cannot reach.** It skips
+# blitzkit, and the only two commits this script makes there are scoped to
+# Cargo.toml and to web, so nothing committed blitzkit/media at all. The
+# grids ./refresh-screenshots lays out and the stamp it writes beside them
+# were left dirty in the tree by every release: found after 0.17.0 on
+# 2026-11-26, with games.png and rooms.png restamped against the new commit
+# and both pictures byte for byte what they already were.
+#
+# Here rather than after ./build-web, which the paragraph below sends last.
+# ./stamp --inputs names src, res, examples and shapes/src, so media is an
+# input to nothing and a commit to it cannot put a clip, a still or a
+# browser build behind. It is in this section because these are the same
+# photographs the loop above committed, seen from the engine's side.
+if [ -n "$(git -C blitzkit status --porcelain -- media)" ]; then
+  (cd blitzkit && git commit -q -m "The grids and the stamp for $want" -- media)
+  echo "and the engine's own grids and stamp"
+else
+  echo "the engine's grids and stamp did not move"
+fi
+
 # **And everything committed so far just made the browser builds stale.** A
 # game's manifest, its lockfile and its screenshot all live in the repo its
 # build is made from, so committing them puts every game that has a browser
