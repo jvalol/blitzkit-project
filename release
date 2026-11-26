@@ -128,6 +128,47 @@ else
   echo "the engine's grids and stamp did not move"
 fi
 
+say "the clips those commits just put behind"
+# **The same reason as the browser builds below, and it was left out.** A
+# game's manifest and its lockfile count against anything filmed from that
+# repo, so the commits just made put the arcade's clip one of its own behind
+# and nothing here refilmed it. 0.17.0 went out that way on 2026-11-26 and
+# the next ./check-all failed on that one line. The builds below are rebuilt
+# for exactly this and the film was not.
+#
+# Counting the lockfile is right and is not what wanted fixing. [patch
+# .crates-io] means the engine always comes from the checkout here, so the
+# one line this release moves cannot change a frame, but a commit that moves
+# glam can, and an exclusion written from the harmless case would hide the
+# other one.
+#
+# Which examples these are comes from the manifest's own source column, not
+# from a name typed here, because a second account of which clips come from
+# a game repo is one that drifts. Today it says xanadu and nothing else.
+#
+# A refilm that comes back a different clip is committed without the gate
+# having seen it, the same as the browser builds below, which is why both
+# this script and RELEASING.md end by telling you to look at the pictures.
+filmed=()
+while read -r name; do filmed+=("$name"); done < <(
+  awk -F'\t' '$1 !~ /^#/ && $3 != "-" && $3 != "" {
+    n = $1; sub(/\.[^.]*$/, "", n); print n
+  }' blitzkit/media/MADE | sort -u
+)
+# bash 3.2 kills the script on "${empty[@]}" under set -u, so the list is
+# counted before it is expanded, the way check-fresh does it.
+if [ ${#filmed[@]} = 0 ]; then
+  echo "nothing in media is filmed from a game repo"
+else
+  ./refresh-examples "${filmed[@]}"
+  if [ -n "$(git -C blitzkit status --porcelain -- media)" ]; then
+    (cd blitzkit && git commit -q -m "Refilm the clips for $want" -- media)
+    echo "refilmed and committed"
+  else
+    echo "nothing moved, so nothing to commit"
+  fi
+fi
+
 # **And everything committed so far just made the browser builds stale.** A
 # game's manifest, its lockfile and its screenshot all live in the repo its
 # build is made from, so committing them puts every game that has a browser
