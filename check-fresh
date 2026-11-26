@@ -163,8 +163,30 @@ behind_source() {
   # no stamp names a game as an input to the arcade, so a game's screenshot
   # was never counted against the arcade's build here anyway. The day a
   # stamp lists them, take this back out.
+  #
+  # **tests goes too, and it has a wider warrant than media did.** Deleting
+  # three orphan picture references under the arcade's tests/rooms on
+  # 2026-11-25 marked its clip stale and held the 0.17.0 release at this
+  # line. Clearing it refilmed 1,802 frames to move a stamp and change no
+  # bytes: the film came back 0 differing, worst 0.00000.
+  #
+  # Safer than media rather than as safe. Rust compiles nothing under tests/
+  # into a library or a binary, so no commit there reaches a clip or a
+  # browser build whatever a game decides to keep in it. Checked across all
+  # sixteen repos rather than assumed: no include_bytes!, include_str! or
+  # include! anywhere names a path under tests. What is compiled in comes
+  # from res/, data/, a sibling .rs or OUT_DIR, and the one generated
+  # include is the arcade's build.rs:91 naming OUT_DIR/<game>-screen.png,
+  # resized from each game's media/screenshot.png, which the bakes column
+  # holds by hash already. Every path that does join onto tests/ sits inside
+  # a #[cfg(test)] module and a #[test] function, in the arcade and in all
+  # thirteen games, so no byte of one enters a binary.
+  #
+  # The day a stamp is made by running something under tests/, take this
+  # back out.
   git -C "$where" rev-list --count "$was"..HEAD \
-    -- . ':(exclude)specs' ':(exclude)*.md' ':(exclude)media' 2>/dev/null || echo "?"
+    -- . ':(exclude)specs' ':(exclude)*.md' ':(exclude)media' ':(exclude)tests' \
+    2>/dev/null || echo "?"
 }
 
 # **And it says who makes the thing it is reporting on.** This printed one
